@@ -168,5 +168,18 @@ function xmldb_assign_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2017061205, 'assign');
     }
 
+    if ($oldversion < 2017051502) {
+        require_once($CFG->dirroot.'/mod/assign/upgradelib.php');
+        $brokenassigns = get_assignments_with_rescaled_null_grades();
+
+        // Set config value.
+        foreach ($brokenassigns as $assign) {
+            set_config('has_rescaled_null_grades_' . $assign, 1, 'assign');
+        }
+
+        // Main savepoint reached.
+        upgrade_mod_savepoint(true, 2017051502, 'assign');
+    }
+
     return true;
 }
