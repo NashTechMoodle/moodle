@@ -2223,7 +2223,7 @@ function xmldb_main_upgrade($oldversion) {
         $dbman->change_field_notnull($table, $field);
 
         // Main savepoint reached.
-        upgrade_main_savepoint(true, 2017072700.01);
+        upgrade_main_savepoint(true, 2017051501.04);
     }
 
     if ($oldversion < 2017072700.02) {
