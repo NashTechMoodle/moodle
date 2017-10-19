@@ -37,7 +37,6 @@ $hash = required_param('b', PARAM_ALPHANUM); // Issued badge unique hash for bad
 $action = optional_param('action', null, PARAM_BOOL); // Generates badge class if true.
 
 $assertion = new core_badges_assertion($hash);
-
 if (!is_null($action)) {
     // Get badge class or issuer information depending on $action.
     $json = ($action) ? $assertion->get_badge_class() : $assertion->get_issuer();
@@ -52,7 +51,6 @@ if (!is_null($action)) {
         die();
     }
 }
-
 
 echo $OUTPUT->header();
 echo json_encode($json);

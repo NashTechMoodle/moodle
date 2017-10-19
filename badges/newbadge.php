@@ -30,6 +30,7 @@ require_once($CFG->dirroot . '/badges/edit_form.php');
 
 $type = required_param('type', PARAM_INT);
 $courseid = optional_param('id', 0, PARAM_INT);
+$version = optional_param('v', null, PARAM_INT); // Control version.
 
 require_login();
 
@@ -55,7 +56,7 @@ if (($type == BADGE_TYPE_COURSE) && ($course = $DB->get_record('course', array('
 } else {
     $PAGE->set_context(context_system::instance());
     $PAGE->set_pagelayout('admin');
-    $PAGE->set_url('/badges/newbadge.php', array('type' => $type));
+    $PAGE->set_url('/badges/newbadge.php', array('type' => $type, 'v' => $version));
     $PAGE->set_heading($title);
     $PAGE->set_title($title);
 }
@@ -68,8 +69,11 @@ $PAGE->requires->js_init_call('check_site_access', null, false);
 $fordb = new stdClass();
 $fordb->id = null;
 
-$form = new edit_details_form($PAGE->url, array('action' => 'new'));
-
+if (isset($version) && $version == 2) {
+    $form = new edit_details_form_v2($PAGE->url, array('action' => 'new'));
+} else {
+    $form = new edit_details_form($PAGE->url, array('action' => 'new'));
+}
 if ($form->is_cancelled()) {
     redirect(new moodle_url('/badges/index.php', array('type' => $type, 'id' => $courseid)));
 } else if ($data = $form->get_data()) {
@@ -77,7 +81,12 @@ if ($form->is_cancelled()) {
     $now = time();
 
     $fordb->name = $data->name;
+    $fordb->obsversion = $data->obsversion;
+    $fordb->version = $data->version;
+    $fordb->language = $data->language;
     $fordb->description = $data->description;
+    $fordb->authorimage = $data->authorimage;
+    $fordb->captionimage = $data->captionimage;
     $fordb->timecreated = $now;
     $fordb->timemodified = $now;
     $fordb->usercreated = $USER->id;

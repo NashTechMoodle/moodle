@@ -29,6 +29,8 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/formslib.php');
 require_once($CFG->libdir . '/badgeslib.php');
 require_once($CFG->libdir . '/filelib.php');
+//require_once($CFG->libdir . '/typo3/interface.t3lib_singleton.php');
+//require_once($CFG->libdir . '/typo3/class.t3lib_l10n_locales.php');
 
 /**
  * Form to edit badge details.
@@ -41,13 +43,23 @@ class edit_details_form extends moodleform {
      */
     public function definition() {
         global $CFG;
-
         $mform = $this->_form;
         $badge = (isset($this->_customdata['badge'])) ? $this->_customdata['badge'] : false;
         $action = $this->_customdata['action'];
 
+        $languages = get_string_manager()->get_list_of_languages();
+
         $mform->addElement('header', 'badgedetails', get_string('badgedetails', 'badges'));
         $mform->addElement('text', 'name', get_string('name'), array('size' => '70'));
+        $mform->addElement('select', 'obsversion', get_string('obsversion', 'badges'),
+            array(1 => 'Version 1.x', 2 => 'Version 2.x')
+        );
+        $mform->addHelpButton('obsversion', 'obsversion', 'badges');
+        $mform->addElement('text', 'version', get_string('version', 'badges'), array('size' => '70'));
+        $mform->setType('version', PARAM_TEXT);
+        $mform->addHelpButton('version', 'version', 'badges');
+        $mform->addElement('select', 'language', get_string('language'), $languages);
+        $mform->addHelpButton('language', 'language', 'badges');
         // Using PARAM_FILE to avoid problems later when downloading badge files.
         $mform->setType('name', PARAM_FILE);
         $mform->addRule('name', null, 'required');
@@ -60,7 +72,6 @@ class edit_details_form extends moodleform {
         $str = $action == 'new' ? get_string('badgeimage', 'badges') : get_string('newimage', 'badges');
         $imageoptions = array('maxbytes' => 262144, 'accepted_types' => array('web_image'));
         $mform->addElement('filepicker', 'image', $str, null, $imageoptions);
-
         if ($action == 'new') {
             $mform->addRule('image', null, 'required');
         } else {
@@ -69,6 +80,12 @@ class edit_details_form extends moodleform {
         }
         $mform->addHelpButton('image', 'badgeimage', 'badges');
 
+        $mform->addElement('text', 'authorimage', get_string('authorimage', 'badges'), array('size' => '70'));
+        $mform->setType('authorimage', PARAM_TEXT);
+        $mform->addHelpButton('authorimage', 'authorimage', 'badges');
+        $mform->addElement('text', 'captionimage', get_string('captionimage', 'badges'), array('size' => '70'));
+        $mform->setType('captionimage', PARAM_TEXT);
+        $mform->addHelpButton('captionimage', 'captionimage', 'badges');
         $mform->addElement('header', 'issuerdetails', get_string('issuerdetails', 'badges'));
 
         $mform->addElement('text', 'issuername', get_string('name'), array('size' => '70'));
@@ -107,8 +124,7 @@ class edit_details_form extends moodleform {
         $mform->disabledIf('expiredate[year]', 'expiry', 'neq', 1);
         $mform->disabledIf('expireperiod[number]', 'expiry', 'neq', 2);
         $mform->disabledIf('expireperiod[timeunit]', 'expiry', 'neq', 2);
-
-        // Set issuer URL.
+            // Set issuer URL.
         // Have to parse URL because badge issuer origin cannot be a subfolder in wwwroot.
         $url = parse_url($CFG->wwwroot);
         $mform->addElement('hidden', 'issuerurl', $url['scheme'] . '://' . $url['host']);
@@ -118,6 +134,7 @@ class edit_details_form extends moodleform {
         $mform->setType('action', PARAM_TEXT);
 
         if ($action == 'new') {
+            $mform->setDefault('language',$CFG->lang);
             $this->add_action_buttons(true, get_string('createbutton', 'badges'));
         } else {
             // Add hidden fields.
