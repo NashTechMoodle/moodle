@@ -22,6 +22,13 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+define('USER_FILTER_ENROLMENT', 1);
+define('USER_FILTER_GROUP', 2);
+define('USER_FILTER_LAST_ACCESS', 3);
+define('USER_FILTER_ROLE', 4);
+define('USER_FILTER_STATUS', 5);
+define('USER_FILTER_STRING', 6);
+
 /**
  * Creates a user
  *
@@ -328,7 +335,7 @@ function user_get_user_details($user, $course = null, array $userfields = array(
             $userdetails['lastname'] = $user->lastname;
         }
     }
-    $userdetails['fullname'] = fullname($user);
+    $userdetails['fullname'] = fullname($user, $canviewfullnames);
 
     if (in_array('customfields', $userfields)) {
         $categories = profile_get_user_fields_with_data_by_category($user->id);
@@ -456,12 +463,15 @@ function user_get_user_details($user, $course = null, array $userfields = array(
         }
     }
 
-    if (in_array('email', $userfields) && ($isadmin // The admin is allowed the users email.
-      or $currentuser // Of course the current user is as well.
-      or $canviewuseremail  // This is a capability in course context, it will be false in usercontext.
-      or in_array('email', $showuseridentityfields)
-      or $user->maildisplay == 1
-      or ($user->maildisplay == 2 and enrol_sharing_course($user, $USER)))) {
+    if (in_array('email', $userfields) && (
+            $currentuser
+            or (!isset($hiddenfields['email']) and (
+                $user->maildisplay == core_user::MAILDISPLAY_EVERYONE
+                or ($user->maildisplay == core_user::MAILDISPLAY_COURSE_MEMBERS_ONLY and enrol_sharing_course($user, $USER))
+                or $canviewuseremail  // TODO: Deprecate/remove for MDL-37479.
+            ))
+            or in_array('email', $showuseridentityfields)
+       )) {
         $userdetails['email'] = $user->email;
     }
 
@@ -555,6 +565,14 @@ function user_get_user_details($user, $course = null, array $userfields = array(
                 $userdetails[$extrafield] = $user->$extrafield;
             }
         }
+    }
+
+    // Clean lang and auth fields for external functions (it may content uninstalled themes or language packs).
+    if (isset($userdetails['lang'])) {
+        $userdetails['lang'] = clean_param($userdetails['lang'], PARAM_LANG);
+    }
+    if (isset($userdetails['theme'])) {
+        $userdetails['theme'] = clean_param($userdetails['theme'], PARAM_THEME);
     }
 
     return $userdetails;
@@ -1136,6 +1154,33 @@ function user_can_view_profile($user, $course = null, $usercontext = null) {
         return true;
     }
 
+    // Use callbacks so that (primarily) local plugins can prevent or allow profile access.
+    $forceallow = false;
+    $plugintypes = get_plugins_with_function('control_view_profile');
+    foreach ($plugintypes as $plugins) {
+        foreach ($plugins as $pluginfunction) {
+            $result = $pluginfunction($user, $course, $usercontext);
+            switch ($result) {
+                case core_user::VIEWPROFILE_DO_NOT_PREVENT:
+                    // If the plugin doesn't stop access, just continue to next plugin or use
+                    // default behaviour.
+                    break;
+                case core_user::VIEWPROFILE_FORCE_ALLOW:
+                    // Record that we are definitely going to allow it (unless another plugin
+                    // returns _PREVENT).
+                    $forceallow = true;
+                    break;
+                case core_user::VIEWPROFILE_PREVENT:
+                    // If any plugin returns PREVENT then we return false, regardless of what
+                    // other plugins said.
+                    return false;
+            }
+        }
+    }
+    if ($forceallow) {
+        return true;
+    }
+
     // Course contacts have visible profiles always.
     if (has_coursecontact_role($user->id)) {
         return true;
@@ -1232,7 +1277,7 @@ function user_get_tagged_users($tag, $exclusivemode = false, $fromctx = 0, $ctx 
  */
 function user_get_participants_sql($courseid, $groupid = 0, $accesssince = 0, $roleid = 0, $enrolid = 0, $statusid = -1,
                                    $search = '', $additionalwhere = '', $additionalparams = array()) {
-    global $DB;
+    global $DB, $USER;
 
     // Get the context.
     $context = \context_course::instance($courseid, MUST_EXIST);
@@ -1263,7 +1308,7 @@ function user_get_participants_sql($courseid, $groupid = 0, $accesssince = 0, $r
     $joins = array('FROM {user} u');
     $wheres = array();
 
-    $userfields = get_extra_user_fields($context, array('username', 'lang', 'timezone', 'maildisplay'));
+    $userfields = get_extra_user_fields($context);
     $userfieldssql = user_picture::fields('u', $userfields);
 
     if ($isfrontpage) {
@@ -1308,13 +1353,67 @@ function user_get_participants_sql($courseid, $groupid = 0, $accesssince = 0, $r
             $searchkey1 = 'search' . $index . '1';
             $searchkey2 = 'search' . $index . '2';
             $searchkey3 = 'search' . $index . '3';
+            $searchkey4 = 'search' . $index . '4';
+            $searchkey5 = 'search' . $index . '5';
+            $searchkey6 = 'search' . $index . '6';
+            $searchkey7 = 'search' . $index . '7';
+
+            $conditions = array();
+            // Search by fullname.
             $fullname = $DB->sql_fullname('u.firstname', 'u.lastname');
-            $wheres[] = '(' . $DB->sql_like($fullname, ':' . $searchkey1, false, false) .
-                ' OR ' . $DB->sql_like('email', ':' . $searchkey2, false, false) .
-                ' OR ' . $DB->sql_like('idnumber', ':' . $searchkey3, false, false) . ') ';
+            $conditions[] = $DB->sql_like($fullname, ':' . $searchkey1, false, false);
+
+            // Search by email.
+            $email = $DB->sql_like('email', ':' . $searchkey2, false, false);
+            if (!in_array('email', $userfields)) {
+                $maildisplay = 'maildisplay' . $index;
+                $userid1 = 'userid' . $index . '1';
+                // Prevent users who hide their email address from being found by others
+                // who aren't allowed to see hidden email addresses.
+                $email = "(". $email ." AND (" .
+                        "u.maildisplay <> :$maildisplay " .
+                        "OR u.id = :$userid1". // User can always find himself.
+                        "))";
+                $params[$maildisplay] = core_user::MAILDISPLAY_HIDE;
+                $params[$userid1] = $USER->id;
+            }
+            $conditions[] = $email;
+
+            // Search by idnumber.
+            $idnumber = $DB->sql_like('idnumber', ':' . $searchkey3, false, false);
+            if (!in_array('idnumber', $userfields)) {
+                $userid2 = 'userid' . $index . '2';
+                // Users who aren't allowed to see idnumbers should at most find themselves
+                // when searching for an idnumber.
+                $idnumber = "(". $idnumber . " AND u.id = :$userid2)";
+                $params[$userid2] = $USER->id;
+            }
+            $conditions[] = $idnumber;
+
+            // Search by middlename.
+            $middlename = $DB->sql_like('middlename', ':' . $searchkey4, false, false);
+            $conditions[] = $middlename;
+
+            // Search by alternatename.
+            $alternatename = $DB->sql_like('alternatename', ':' . $searchkey5, false, false);
+            $conditions[] = $alternatename;
+
+            // Search by firstnamephonetic.
+            $firstnamephonetic = $DB->sql_like('firstnamephonetic', ':' . $searchkey6, false, false);
+            $conditions[] = $firstnamephonetic;
+
+            // Search by lastnamephonetic.
+            $lastnamephonetic = $DB->sql_like('lastnamephonetic', ':' . $searchkey7, false, false);
+            $conditions[] = $lastnamephonetic;
+
+            $wheres[] = "(". implode(" OR ", $conditions) .") ";
             $params[$searchkey1] = "%$keyword%";
             $params[$searchkey2] = "%$keyword%";
             $params[$searchkey3] = "%$keyword%";
+            $params[$searchkey4] = "%$keyword%";
+            $params[$searchkey5] = "%$keyword%";
+            $params[$searchkey6] = "%$keyword%";
+            $params[$searchkey7] = "%$keyword%";
         }
     }
 

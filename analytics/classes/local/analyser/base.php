@@ -363,7 +363,7 @@ abstract class base {
         $result = $this->analysabletarget->is_valid_analysable($analysable, $includetarget);
         if ($result !== true) {
             $a = new \stdClass();
-            $a->analysableid = $analysable->get_id();
+            $a->analysableid = $analysable->get_name();
             $a->result = $result;
             $this->add_log(get_string('analysablenotvalidfortarget', 'analytics', $a));
             return array();
@@ -407,7 +407,7 @@ abstract class base {
             }
 
             $a = new \stdClass();
-            $a->analysableid = $analysable->get_id();
+            $a->analysableid = $analysable->get_name();
             $a->errors = implode(', ', $errors);
             $this->add_log(get_string('analysablenotused', 'analytics', $a));
         }
@@ -432,6 +432,53 @@ abstract class base {
      */
     public function get_logs() {
         return $this->log;
+    }
+
+    /**
+     * Whether the plugin needs user data clearing or not.
+     *
+     * This is related to privacy. Override this method if your analyser samples have any relation
+     * to the 'user' database entity. We need to clean the site from all user-related data if a user
+     * request their data to be deleted from the system. A static::provided_sample_data returning 'user'
+     * is an indicator that you should be returning true.
+     *
+     * @return bool
+     */
+    public function processes_user_data() {
+        return false;
+    }
+
+    /**
+     * SQL JOIN from a sample to users table.
+     *
+     * This function should be defined if static::processes_user_data returns true and it is related to analytics API
+     * privacy API implementation. It allows the analytics API to identify data associated to users that needs to be
+     * deleted or exported.
+     *
+     * This function receives the alias of a table with a 'sampleid' field and it should return a SQL join
+     * with static::get_samples_origin and with 'user' table. Note that:
+     * - The function caller expects the returned 'user' table to be aliased as 'u' (defacto standard in moodle).
+     * - You can join with other tables if your samples origin table does not contain a 'userid' field (if that would be
+     *   a requirement this solution would be automated for you) you can't though use the following
+     *   aliases: 'ap', 'apa', 'aic' and 'am'.
+     *
+     * Some examples:
+     *
+     * static::get_samples_origin() === 'user':
+     *   JOIN {user} u ON {$sampletablealias}.sampleid = u.id
+     *
+     * static::get_samples_origin() === 'role_assignments':
+     *   JOIN {role_assignments} ra ON {$sampletablealias}.sampleid = ra.userid JOIN {user} u ON u.id = ra.userid
+     *
+     * static::get_samples_origin() === 'user_enrolments':
+     *   JOIN {user_enrolments} ue ON {$sampletablealias}.sampleid = ue.userid JOIN {user} u ON u.id = ue.userid
+     *
+     * @throws \coding_exception
+     * @param string $sampletablealias The alias of the table with a sampleid field that will join with this SQL string
+     * @return string
+     */
+    public function join_sample_user($sampletablealias) {
+        throw new \coding_exception('This method should be implemented if static::processes_user_data returns true.');
     }
 
     /**
@@ -514,7 +561,7 @@ abstract class base {
             }
         }
 
-        if (!empty($target)) {
+        if (!empty($includetarget)) {
             $filearea = \core_analytics\dataset_manager::LABELLED_FILEAREA;
         } else {
             $filearea = \core_analytics\dataset_manager::UNLABELLED_FILEAREA;

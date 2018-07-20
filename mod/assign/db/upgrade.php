@@ -34,9 +34,6 @@ function xmldb_assign_upgrade($oldversion) {
 
     $dbman = $DB->get_manager();
 
-    // Moodle v3.1.0 release upgrade line.
-    // Put any upgrade step following this.
-
     if ($oldversion < 2016100301) {
 
         // Define table assign_overrides to be created.
@@ -168,18 +165,11 @@ function xmldb_assign_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2017061205, 'assign');
     }
 
-    if ($oldversion < 2017051502) {
-        require_once($CFG->dirroot.'/mod/assign/upgradelib.php');
-        $brokenassigns = get_assignments_with_rescaled_null_grades();
+    // Automatically generated Moodle v3.4.0 release upgrade line.
+    // Put any upgrade step following this.
 
-        // Set config value.
-        foreach ($brokenassigns as $assign) {
-            set_config('has_rescaled_null_grades_' . $assign, 1, 'assign');
-        }
-
-        // Main savepoint reached.
-        upgrade_mod_savepoint(true, 2017051502, 'assign');
-    }
+    // Automatically generated Moodle v3.5.0 release upgrade line.
+    // Put any upgrade step following this.
 
     return true;
 }

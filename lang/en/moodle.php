@@ -119,6 +119,7 @@ $string['advancedsettings'] = 'Advanced settings';
 $string['afterresource'] = 'After resource "{$a}"';
 $string['aftersection'] = 'After section "{$a}"';
 $string['again'] = 'again';
+$string['agelocationverification'] = 'Age and location verification';
 $string['aimid'] = 'AIM ID';
 $string['ajaxuse'] = 'AJAX and Javascript';
 $string['all'] = 'All';
@@ -170,6 +171,7 @@ $string['availablecourses'] = 'Available courses';
 $string['back'] = 'Back';
 $string['backto'] = 'Back to {$a}';
 $string['backtocourselisting'] = 'Back to course listing';
+$string['backtohome'] = 'Back to the site home';
 $string['backtopageyouwereon'] = 'Back to the page you were on';
 $string['backtoparticipants'] = 'Back to participants list';
 $string['backup'] = 'Backup';
@@ -264,9 +266,10 @@ $string['configuration'] = 'Configuration';
 $string['confirm'] = 'Confirm';
 $string['confirmdeletesection'] = 'Are you absolutely sure you want to completely delete "{$a}" and all the activities it contains?';
 $string['confirmed'] = 'Your registration has been confirmed';
-$string['confirmednot'] = 'Your registration has not yet been confirmed!';
+$string['confirmednot'] = 'Your registration has not yet been confirmed. Please check your mailbox for a confirmation email.';
 $string['confirmcheckfull'] = 'Are you absolutely sure you want to confirm {$a} ?';
 $string['confirmcoursemove'] = 'Are you sure you want to move this course ({$a->course}) into this category ({$a->category})?';
+$string['considereddigitalminor'] = 'You are considered to be a digital minor.';
 $string['content'] = 'Content';
 $string['continue'] = 'Continue';
 $string['continuetocourse'] = 'Click here to enter your course';
@@ -292,6 +295,7 @@ $string['counteditems'] = '{$a->count} {$a->items}';
 $string['country'] = 'Country';
 $string['course'] = 'Course';
 $string['courseadministration'] = 'Course administration';
+$string['coursealreadyfinished'] = 'Course already finished';
 $string['courseapprovedemail'] = 'Your requested course, {$a->name}, has been approved and you have been made a {$a->teacher}.  To access your new course, go to {$a->url}';
 $string['courseapprovedemail2'] = 'Your requested course, {$a->name}, has been approved.  To access your new course, go to {$a->url}';
 $string['courseapprovedfailed'] = 'Failed to save the course as approved!';
@@ -336,8 +340,8 @@ $string['coursehelpnewsitemsnumber'] = 'Number of recent announcements appearing
 $string['coursehelpnumberweeks'] = 'Number of sections in the course (applies to certain course formats only).';
 $string['coursehelpshowgrades'] = 'Enable the display of the gradebook. It does not prevent grades from being displayed within the individual activities.';
 $string['coursehidden'] = 'This course is currently unavailable to students';
-$string['coursenotyetstarted'] = 'The course is not yet started';
-$string['coursenotyetfinished'] = 'The course is not yet finished';
+$string['coursenotyetstarted'] = 'The course has not yet started';
+$string['coursenotyetfinished'] = 'The course has not yet finished';
 $string['courseoverviewfiles'] = 'Course summary files';
 $string['courseoverviewfilesext'] = 'Course summary files extensions';
 $string['courseoverviewfileslimit'] = 'Course summary files limit';
@@ -379,6 +383,13 @@ $string['coursesectiontitle'] = 'Course: {$a->course}, {$a->sectionname}: {$a->s
 $string['coursesettings'] = 'Course default settings';
 $string['coursesmovedout'] = 'Courses moved out from {$a}';
 $string['coursespending'] = 'Courses pending approval';
+$string['coursesearch'] = 'Search courses';
+$string['coursesearch_help'] = '<p>You can search for multiple words at once and can refine your search as follows:</p>
+<ul>
+<li>word - find any match of this word within the text.</li>
+<li>+word - only exact matching words will be found.</li>
+<li>-word - don\'t include results containing this word.</li>
+</ul>';
 $string['coursestart'] = 'Course start';
 $string['coursesummary'] = 'Course summary';
 $string['coursesummary_help'] = 'The course summary is displayed in the list of courses. A course search searches course summary text in addition to course names.';
@@ -497,6 +508,8 @@ $string['description'] = 'Description';
 $string['deselectall'] = 'Deselect all';
 $string['detailedless'] = 'Less detailed';
 $string['detailedmore'] = 'More detailed';
+$string['digitalminor'] = 'Digital minor';
+$string['digitalminor_desc'] = 'To create an account on this site please have your parent/guardian contact the following person.';
 $string['directory'] = 'Directory';
 $string['disable'] = 'Disable';
 $string['disabledcomments'] = 'Comments are disabled';
@@ -596,10 +609,13 @@ line at the top of your web browser window.
 
 If you need help, please contact the site administrator,
 {$a->admin}';
+$string['emailconfirmationresend'] = 'Resend confirmation email';
 $string['emailconfirmationsubject'] = '{$a}: account confirmation';
 $string['emailconfirmsent'] = '<p>An email should have been sent to your address at <b>{$a}</b></p>
    <p>It contains easy instructions to complete your registration.</p>
    <p>If you continue to have difficulty, contact the site administrator.</p>';
+$string['emailconfirmsentfailure'] = 'Confirmation email failed to send';
+$string['emailconfirmsentsuccess'] = 'Confirmation email sent successfully';
 $string['emaildigest'] = 'Email digest type';
 $string['emaildigest_help'] = 'This is the daily digest setting that forums will use by default.
 
@@ -614,9 +630,10 @@ $string['emaildigestsubjects'] = 'Subjects (daily email with subjects only)';
 $string['emaildisable'] = 'This email address is disabled';
 $string['emaildisableclick'] = 'Click here to disable all email from being sent to this address';
 $string['emaildisplay'] = 'Email display';
+$string['emaildisplay_help'] = 'Privileged users (such as teachers and managers) will always be able to see your email address.';
 $string['emaildisplaycourse'] = 'Allow only other course members to see my email address';
 $string['emaildisplayhidden'] = 'Email hidden';
-$string['emaildisplayno'] = 'Hide my email address from everyone';
+$string['emaildisplayno'] = 'Hide my email address from non-privileged users';
 $string['emaildisplayyes'] = 'Allow everyone to see my email address';
 $string['emailenable'] = 'This email address is enabled';
 $string['emailenableclick'] = 'Click here to re-enable all email being sent to this address';
@@ -661,7 +678,7 @@ If you continue to have difficulty, contact the site administrator.';
 $string['emailpasswordchangeinfo'] = 'Hi {$a->firstname},
 
 Someone (probably you) has requested a new password for your
-account on \'{$a->sitename}\'.
+account \'{$a->username}\' on \'{$a->sitename}\'.
 
 To change your password, please go to the following web address:
 
@@ -709,12 +726,13 @@ $string['emailresetconfirmsent'] = 'An email has been sent to your address at <b
 If you continue to have difficulty, contact the site administrator.';
 $string['emailtoprivatefiles'] = 'You can also e-mail files as attachments straight to your private files space. Simply attach your files to an e-mail and send it to {$a}';
 $string['emailtoprivatefilesdenied'] = 'Your administrator has disabled the option to upload your own private files.';
+$string['emailuserhasnone'] = 'There is no email address for the user.';
 $string['emailvia'] = '{$a->name} (via {$a->siteshortname})';
 $string['emptydragdropregion'] = 'empty region';
 $string['enable'] = 'Enable';
 $string['encryptedcode'] = 'Encrypted code';
 $string['enddate'] = 'Course end date';
-$string['enddate_help'] = 'The course end date is only used for reports. Users can still enter the course after the end date.';
+$string['enddate_help'] = 'The course end date is used for determining whether a course should be included in a user\'s list of courses. When the end date is past, the course is no longer listed in the navigation and is listed as past in the course overview. The course end date may also be used by custom reports. Users can still enter the course after the end date; in other words the date does not restrict access.';
 $string['english'] = 'English';
 $string['enrolmentmethods'] = 'Enrolment methods';
 $string['entercourse'] = 'Click to enter this course';
@@ -792,13 +810,14 @@ $string['expand'] = 'Expand';
 $string['expandall'] = 'Expand all';
 $string['expandcategory'] = 'Expand {$a}';
 $string['explanation'] = 'Explanation';
-$string['extendenrol'] = 'Extend enrolment (individual)';
+$string['explanationdigitalminor'] = 'This information is required to determine if your age is over the digital age of consent. This is the age when an individual can consent to terms and conditions and their data being legally stored and processed.';
 $string['extendperiod'] = 'Extended period';
 $string['failedloginattempts'] = '{$a->attempts} failed logins since your last login';
 $string['feedback'] = 'Feedback';
 $string['file'] = 'File';
 $string['fileexists'] = 'There is already a file called {$a}';
 $string['filemissing'] = '{$a} is missing';
+$string['filereaderror'] = 'Unable to read the file \'{$a}\'. Please check that it really is a file and not a folder.';
 $string['files'] = 'Files';
 $string['filesanduploads'] = 'Files and uploads';
 $string['filesfolders'] = 'Files/folders';
@@ -903,7 +922,6 @@ $string['gravatarenabled'] = '<a href="http://www.gravatar.com/">Gravatar</a> ha
 $string['group'] = 'Group';
 $string['groupadd'] = 'Add new group';
 $string['groupaddusers'] = 'Add selected to group';
-$string['groupextendenrol'] = 'Extend enrolment (common)';
 $string['groupfor'] = 'for group';
 $string['groupinfo'] = 'Info about selected group';
 $string['groupinfoedit'] = 'Edit group settings';
@@ -992,7 +1010,9 @@ $string['choosereportfilter'] = 'Choose a filter for the report';
 $string['choosetheme'] = 'Choose theme';
 $string['chooseuser'] = 'Choose a user';
 $string['courseduration'] = 'Course duration';
-$string['courseduration_desc'] = 'The course duration is used to calculate the default course end date. The course end date is only used for reports. Users can still enter the course after the end date.';
+$string['courseduration_desc'] = 'The course duration is used to calculate the default course end date. The course end date is used for determining whether a course should be included in a user\'s list of courses.  It may also be used by custom reports. Users can still enter the course after the end date.';
+$string['courseenddateenabled'] = 'Course end date enabled by default';
+$string['courseenddateenabled_desc'] = 'This setting determines if the course end date will be enabled by default for new courses and set to the date calculated from the course duration.';
 $string['eventcontentviewed'] = 'Content viewed';
 $string['filter'] = 'Filter';
 $string['filteroption'] = '{$a->criteria}: {$a->value}';
@@ -1007,9 +1027,9 @@ $string['idnumbergroup_help'] = 'The ID number of a group is only used when matc
 $string['idnumbergrouping'] = 'Grouping ID number';
 $string['idnumbergrouping_help'] = 'The ID number of a grouping is only used when matching the grouping against external systems and is not displayed anywhere on the site. If the grouping has an official code name it may be entered, otherwise the field can be left blank.';
 $string['idnumbermod'] = 'ID number';
-$string['idnumbermod_help'] = 'Setting an ID number provides a way of identifying the activity for grade calculation purposes. If the activity is not included in any grade calculation then the ID number field may be left blank.
+$string['idnumbermod_help'] = 'Setting an ID number provides a way of identifying the activity or resource for purposes such as grade calculation or custom reporting. Otherwise the field may be left blank.
 
-The ID number can also be set in the gradebook, though it can only be edited on the activity settings page.';
+For gradable activities, the ID number can also be set in the gradebook, though it can only be edited on the activity settings page.';
 $string['idnumbertaken'] = 'This ID number is already taken';
 $string['imagealt'] = 'Picture description';
 $string['import'] = 'Import';
@@ -1038,6 +1058,8 @@ $string['indicator:accessesbeforestart'] = 'Course accessed before start date';
 $string['indicator:accessesbeforestart_help'] = 'This indicator reflects if the student accessed the course before the course start date.';
 $string['indicator:anywrite'] = 'Any write action';
 $string['indicator:anywrite_help'] = 'This indicator represents any write (submit) action taken by the student.';
+$string['indicator:anywriteincourse'] = 'Any write action in the course';
+$string['indicator:anywriteincourse_help'] = 'This indicator represents any write (submit) action taken by the student in any course activity.';
 $string['indicator:completeduserprofile'] = 'User profile is completed';
 $string['indicator:completeduserprofile_help'] = 'This indicator represents that the student has completed their user profile.';
 $string['indicator:completionenabled'] = 'Completion tracking enabled';
@@ -1206,7 +1228,7 @@ $string['missinglastname'] = 'Missing surname';
 $string['missingname'] = 'Missing name';
 $string['missingnewpassword'] = 'Missing new password';
 $string['missingpassword'] = 'Missing password';
-$string['missingrecaptchachallengefield'] = 'Missing reCAPTCHA challenge field';
+$string['missingrecaptchachallengefield'] = 'Failed reCAPTCHA challenge, try again.';
 $string['missingreqreason'] = 'Missing reason';
 $string['missingshortname'] = 'Missing short name';
 $string['missingshortsitename'] = 'Missing short site name';
@@ -1274,12 +1296,11 @@ $string['moveselectedcoursesto'] = 'Move selected courses to...';
 $string['movetoanotherfolder'] = 'Move to another folder';
 $string['moveup'] = 'Move up';
 $string['msnid'] = 'MSN ID';
-$string['mustconfirm'] = 'You need to confirm your login';
+$string['mustconfirm'] = 'You need to confirm your account';
 $string['mustchangepassword'] = 'The new password must be different than the current one';
 $string['mycourses'] = 'My courses';
 $string['myfiles'] = 'My private files';
 $string['myfilesmanage'] = 'Manage my private files';
-$string['privatefilesmanage'] = 'Manage private files';
 $string['myhome'] = 'Dashboard';
 $string['mymoodledashboard'] = 'My Moodle dashboard';
 $string['myprofile'] = 'My profile';
@@ -1423,7 +1444,7 @@ $string['notifyloginfailuresmessageend'] = 'You can view these logs at {$a}';
 $string['notifyloginfailuresmessagestart'] = 'Here is a list of failed login attempts at {$a} since you were last notified';
 $string['notifyloginfailuressubject'] = '{$a} :: Failed logins notification';
 $string['notincluded'] = 'Not included';
-$string['notingroup'] = 'Sorry, but you need to be part of a group to see this activity.';
+$string['notingroup'] = 'Sorry, but you need to be part of a group to see this page.';
 $string['notpublic'] = 'Not public!';
 $string['nousersfound'] = 'No users found';
 $string['nousersmatching'] = 'No users matching \'{$a}\' were found';
@@ -1467,6 +1488,7 @@ $string['parentcategory'] = 'Parent category';
 $string['parentcoursenotfound'] = 'Parent course not found!';
 $string['parentfolder'] = 'Parent folder';
 $string['participants'] = 'Participants';
+$string['participantscount'] = 'Number of participants: {$a}';
 $string['participantslist'] = 'Participants list';
 $string['participationratio'] = 'Participation ratio';
 $string['participationreport'] = 'Participation report';
@@ -1539,16 +1561,53 @@ $string['previous'] = 'Previous';
 $string['previouslyselectedusers'] = 'Previously selected users not matching \'{$a}\'';
 $string['previoussection'] = 'Previous section';
 $string['primaryadminsetup'] = 'Setup administrator account';
+$string['privacy:metadata:config_log'] = 'The log of configuration changes.';
+$string['privacy:metadata:config_log:name'] = 'The name of the setting changes.';
+$string['privacy:metadata:config_log:oldvalue'] = 'The previous value for this setting.';
+$string['privacy:metadata:config_log:plugin'] = 'The plugin modified.';
+$string['privacy:metadata:config_log:timemodified'] = 'The time that the change was made.';
+$string['privacy:metadata:config_log:userid'] = 'The user who made the change.';
+$string['privacy:metadata:config_log:value'] = 'The  new value for this setting.';
+$string['privacy:metadata:events_queue'] = 'The queue of user events waiting to be processed.';
+$string['privacy:metadata:events_queue:eventdata'] = 'The data stored in the event.';
+$string['privacy:metadata:events_queue:stackdump'] = 'Any stacktrace associated with this event.';
+$string['privacy:metadata:events_queue:timecreated'] = 'The time that this event was created.';
+$string['privacy:metadata:events_queue:userid'] = 'The user ID associated with this event';
+$string['privacy:metadata:log'] = 'A collection of past events';
+$string['privacy:metadata:log:action'] = 'A description of the action';
+$string['privacy:metadata:log:cmid'] = 'cmid';
+$string['privacy:metadata:log:course'] = 'course';
+$string['privacy:metadata:log:info'] = 'Additional information';
+$string['privacy:metadata:log:ip'] = 'The IP address used at the time of the event';
+$string['privacy:metadata:log:module'] = 'module';
+$string['privacy:metadata:log:time'] = 'The date at wich the action took place';
+$string['privacy:metadata:log:url'] = 'The URL related to the event';
+$string['privacy:metadata:log:userid'] = 'The ID of the user who performed the action';
+$string['privacy:metadata:task_adhoc'] = 'The status of adhoc tasks.';
+$string['privacy:metadata:task_adhoc:component'] = 'The component owning the task.';
+$string['privacy:metadata:task_adhoc:nextruntime'] = 'The earliest time to run this task.';
+$string['privacy:metadata:task_adhoc:userid'] = 'The user to run the task as.';
+$string['privacy:metadata:upgrade_log'] = 'The upgrade log.';
+$string['privacy:metadata:upgrade_log:backtrace'] = 'Any backtrace associated with this upgrade step.';
+$string['privacy:metadata:upgrade_log:details'] = 'Extra information relating to the upgrade.';
+$string['privacy:metadata:upgrade_log:info'] = 'The main information for this upgrade step.';
+$string['privacy:metadata:upgrade_log:plugin'] = 'The plugin which was upgraded.';
+$string['privacy:metadata:upgrade_log:targetversion'] = 'The new version to upgrade to.';
+$string['privacy:metadata:upgrade_log:timemodified'] = 'The time that the upgrade took place.';
+$string['privacy:metadata:upgrade_log:type'] = 'The type of log entry.';
+$string['privacy:metadata:upgrade_log:userid'] = 'The user who ran the upgrade.';
+$string['privacy:metadata:upgrade_log:version'] = 'The old version of the plugin.';
 $string['privatefiles'] = 'Private files';
+$string['privatefilesmanage'] = 'Manage private files';
 $string['private_files_handler'] = 'Store attachments to an e-mail in the user\'s private files storage space.';
 $string['private_files_handler_name'] = 'Email to Private files';
+$string['proceed'] = 'Proceed';
 $string['profile'] = 'Profile';
 $string['profilenotshown'] = 'This profile description will not be shown until this person is enrolled in at least one course.';
 $string['publicprofile'] = 'Public profile';
 $string['publicsitefileswarning'] = 'Note: files placed here can be accessed by anyone';
 $string['publicsitefileswarning2'] = 'Note: Files placed here can be accessed by anyone who knows (or can guess) the URL. For security reasons, it is recommended that any backup files are deleted immediately after restoring them.';
 $string['publicsitefileswarning3'] = 'Note: Files placed here can be accessed by anyone who knows (or can guess) the URL. <br />For security reasons, backup files should be saved in the secure backupdata folder only.';
-$string['publish'] = 'Publish';
 $string['question'] = 'Question';
 $string['questionsinthequestionbank'] = 'Questions in the question bank';
 $string['quotausage'] = 'You have currently used {$a->used} of your {$a->total} limit.';
@@ -1564,8 +1623,8 @@ $string['refresh'] = 'Refresh';
 $string['refreshingevents'] = 'Refreshing events';
 $string['registration'] = 'Moodle registration';
 $string['registrationcontact'] = 'Contact from the public';
-$string['registrationcontactno'] = 'No, I do not want a contact form in the site listing';
-$string['registrationcontactyes'] = 'Yes, provide a form for prospective Moodlers to contact me';
+$string['registrationcontactno'] = 'No, I do not want to be contacted by other people';
+$string['registrationcontactyes'] = 'Yes, provide a form for other Moodlers to contact me';
 $string['registrationemail'] = 'Email notifications';
 $string['registrationinfo'] = '<p>This page allows you to register your Moodle site with moodle.org.  Registration is free.
 The main benefit of registering is that you will be added to a low-volume mailing list
@@ -1576,9 +1635,9 @@ for important notifications such as security alerts and new releases of Moodle.<
 <p>If you choose, you can allow your site name, country and URL to be added to the public list of Moodle Sites.</p>
 <p>All new registrations are verified manually before they are added to the list, but once you are added you can update your registration (and your entry on the public list) at any time by resubmitting this form.</p>';
 $string['registrationinfotitle'] = 'Registration information';
-$string['registrationno'] = 'No, I do not want to receive email';
+$string['registrationno'] = 'No, I do not want to receive any email from Moodle HQ';
 $string['registrationsend'] = 'Send registration information to moodle.org';
-$string['registrationyes'] = 'Yes, please notify me about important issues';
+$string['registrationyes'] = 'Yes, notify me about important news (e.g. security issues or releases) ';
 $string['reject'] = 'Reject';
 $string['rejectdots'] = 'Reject...';
 $string['reload'] = 'Reload';
@@ -1599,6 +1658,7 @@ $string['requestedcourses'] = 'Requested courses';
 $string['requestreason'] = 'Reason for course request';
 $string['required'] = 'Required';
 $string['requirespayment'] = 'This course requires payment for access';
+$string['resendemail'] = 'Resend email';
 $string['reset'] = 'Reset';
 $string['resetcomponent'] = 'Component';
 $string['resetcourse'] = 'Reset course';
@@ -1690,12 +1750,6 @@ $string['searchagain'] = 'Search again';
 $string['searchbyemail'] = 'Search by email address';
 $string['searchbyusername'] = 'Search by username';
 $string['searchcourses'] = 'Search courses';
-$string['searchhelp'] = '<p>You can search for multiple words at once and can refine your search as follows:</p>
-<ul>
-<li>word - find any match of this word within the text.</li>
-<li>+word - only exact matching words will be found.</li>
-<li>-word - don\'t include results containing this word.</li>
-</ul>';
 $string['searchoptions'] = 'Search options';
 $string['searchresults'] = 'Search results';
 $string['sec'] = 'sec';
@@ -1745,7 +1799,7 @@ $string['selectcoursesortby'] = 'Select how you would like to sort courses';
 $string['senddetails'] = 'Send my details via email';
 $string['separate'] = 'Separate';
 $string['separateandconnected'] = 'Separate and Connected ways of knowing';
-$string['separateandconnectedinfo'] = 'The scale based on the theory of separate and connected knowing. This theory describes two different ways that we can evaluate and learn about the things we see and hear.<ul><li><strong>Separate knowers</strong> remain as objective as possible without including feelings and emotions. In a discussion with other people, they like to defend their own ideas, using logic to find holes in opponent\'s ideas.</li><li><strong>Connected knowers</strong> are more sensitive to other people. They are skilled at empathy and tends to listen and ask questions until they feel they can connect and "understand things from their point of view". They learn by trying to share the experiences that led to the knowledge they find in other people.</li></ul>';
+$string['separateandconnectedinfo'] = 'The scale based on the theory of separate and connected knowing. This theory describes two different ways that we can evaluate and learn about the things we see and hear.<ul><li><strong>Separate knowers</strong> remain as objective as possible without including feelings and emotions. In a discussion with other people, they like to defend their own ideas, using logic to find holes in opponent\'s ideas.</li><li><strong>Connected knowers</strong> are more sensitive to other people. They are skilled at empathy and tend to listen and ask questions until they feel they can connect and "understand things from their point of view". They learn by trying to share the experiences that led to the knowledge they find in other people.</li></ul>';
 $string['servererror'] = 'An error occurred whilst communicating with the server';
 $string['serverlocaltime'] = 'Server\'s local time';
 $string['setcategorytheme'] = 'Set category theme';
@@ -2062,6 +2116,7 @@ $string['userselectorpreserveselected'] = 'Keep selected users, even if they no 
 $string['userselectorsearchanywhere'] = 'Match the search text anywhere in the displayed fields';
 $string['usersnew'] = 'New users';
 $string['usersnoaccesssince'] = 'Inactive for more than';
+$string['userpreferences'] = 'User preferences';
 $string['userswithfiles'] = 'Users with files';
 $string['useruploadtype'] = 'User upload type: {$a}';
 $string['userzones'] = 'User zones';
@@ -2098,8 +2153,11 @@ If you have not done so already, you should edit your profile page so that we ca
   {$a->profileurl}';
 $string['whatforlink'] = 'What do you want to do with the link?';
 $string['whatforpage'] = 'What do you want to do with the text?';
+$string['whatisyourage'] = 'What is your age?';
 $string['whattocallzip'] = 'What do you want to call the zip file?';
 $string['whattodo'] = 'What to do';
+$string['wheredoyoulive'] = 'In which country do you live?';
+$string['whyisthisrequired'] = 'Why is this required?';
 $string['windowclosing'] = 'This window should close automatically. If not, please close it now.';
 $string['withchosenfiles'] = 'With chosen files';
 $string['withdisablednote'] = '{$a} (disabled)';
@@ -2147,10 +2205,6 @@ $string['yourwordforx'] = 'Your word for \'{$a}\'';
 $string['zippingbackup'] = 'Zipping backup';
 $string['deprecatedeventname'] = '{$a} (no longer in use)';
 
-// Deprecated since Moodle 3.1.
-$string['filetoolarge'] = 'is too large to upload';
-$string['maxbytesforfile'] = 'The file {$a} is larger than the maximum size allowed.';
-
 // Deprecated since Moodle 3.2.
 $string['modchooserenable'] = 'Activity chooser on';
 $string['modchooserdisable'] = 'Activity chooser off';
@@ -2158,3 +2212,8 @@ $string['modchooserdisable'] = 'Activity chooser off';
 // Deprecated since Moodle 3.3.
 $string['deletecomment'] = 'Delete this comment';
 $string['sectionusedefaultname'] = 'Use default section name';
+
+// Deprecated since Moodle 3.4.
+$string['publish'] = 'Publish';
+$string['extendenrol'] = 'Extend enrolment (individual)';
+$string['groupextendenrol'] = 'Extend enrolment (common)';

@@ -46,6 +46,14 @@ $error = optional_param('error', '', PARAM_ALPHANUM);
 admin_externalpage_setup('registrationmoodleorg');
 
 if ($url !== HUB_MOODLEORGHUBURL) {
+    // Allow other plugins to confirm registration on hubs other than moodle.net . Plugins implementing this
+    // callback need to redirect or exit. See https://docs.moodle.org/en/Hub_registration .
+    $callbacks = get_plugins_with_function('hub_registration');
+    foreach ($callbacks as $plugintype => $plugins) {
+        foreach ($plugins as $plugin => $callback) {
+            $callback('confirm');
+        }
+    }
     throw new moodle_exception('errorotherhubsnotsupported', 'hub');
 }
 
@@ -64,8 +72,10 @@ echo $OUTPUT->heading(get_string('registrationconfirmed', 'hub'), 3, 'main');
 echo $OUTPUT->notification(get_string('registrationconfirmedon', 'hub'), 'notifysuccess');
 
 // Display continue button.
-$registrationpage = new moodle_url('/admin/registration/index.php');
-$continuebutton = $OUTPUT->render(new single_button($registrationpage, get_string('continue')));
+$returnurl = !empty($SESSION->registrationredirect) ? clean_param($SESSION->registrationredirect, PARAM_LOCALURL) : null;
+unset($SESSION->registrationredirect);
+$continueurl = new moodle_url($returnurl ?: '/admin/registration/index.php');
+$continuebutton = $OUTPUT->render(new single_button($continueurl, get_string('continue')));
 $continuebutton = html_writer::tag('div', $continuebutton, array('class' => 'mdl-align'));
 echo $continuebutton;
 

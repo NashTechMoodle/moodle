@@ -74,13 +74,21 @@ class calendar_upcoming_exporter extends exporter {
             ],
             'defaulteventcontext' => [
                 'type' => PARAM_INT,
-                'default' => null,
+                'default' => 0,
             ],
             'filter_selector' => [
                 'type' => PARAM_RAW,
             ],
             'courseid' => [
                 'type' => PARAM_INT,
+            ],
+            'categoryid' => [
+                'type' => PARAM_INT,
+                'optional' => true,
+                'default' => 0,
+            ],
+            'isloggedin' => [
+                'type' => PARAM_BOOL,
             ],
         ];
     }
@@ -101,12 +109,15 @@ class calendar_upcoming_exporter extends exporter {
             'course' => $this->calendar->course->id,
         ]);
         $this->url = $url;
+        $return['isloggedin'] = isloggedin();
         $return['events'] = array_map(function($event) use ($cache, $output, $url) {
             $context = $cache->get_context($event);
             $course = $cache->get_course($event);
+            $moduleinstance = $cache->get_module_instance($event);
             $exporter = new calendar_event_exporter($event, [
                 'context' => $context,
                 'course' => $course,
+                'moduleinstance' => $moduleinstance,
                 'daylink' => $url,
                 'type' => $this->related['type'],
                 'today' => $this->calendar->time,
@@ -127,6 +138,11 @@ class calendar_upcoming_exporter extends exporter {
         }
         $return['filter_selector'] = $this->get_course_filter_selector($output);
         $return['courseid'] = $this->calendar->courseid;
+
+        if ($this->calendar->categoryid) {
+            $return['categoryid'] = $this->calendar->categoryid;
+        }
+
         return $return;
     }
 
@@ -151,7 +167,7 @@ class calendar_upcoming_exporter extends exporter {
      */
     protected function get_course_filter_selector(renderer_base $output) {
         $langstr = get_string('upcomingeventsfor', 'calendar');
-        return $output->course_filter_selector($this->url, $langstr);
+        return $output->course_filter_selector($this->url, $langstr, $this->calendar->course->id);
     }
 
     /**

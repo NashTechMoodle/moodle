@@ -56,9 +56,8 @@
     padding: 0;
 }
 
-.path-mod-assign .gradingbatchoperationsform .mform fieldset {
-    margin: 0;
-    padding: 0;
+.path-mod-assign textarea.quickgrade {
+    resize: both;
 }
 
 .path-mod-assign td.submissionstatus,
@@ -117,6 +116,12 @@
 .path-mod-assign div.earlysubmission {
     color: black;
     background-color: #cfefcf;
+}
+
+.path-mod-assign td.gradingreminder,
+.path-mod-assign div.gradingreminder {
+    color: black;
+    background-color: #efcfcf;
 }
 
 .path-mod-assign .gradingtable .c0 {
@@ -648,6 +653,15 @@
 .path-mod-assign [data-region="grade-panel"] div.submissionnotgraded {
     color: red;
     background-color: transparent;
+}
+
+.path-mod-assign div.fileuploadsubmission {
+    float: left;
+    min-width: 300px;
+}
+
+.path-mod-assign div.fileuploadsubmissiontime {
+    float: right;
 }
 
 /***** End submission status *****/
@@ -1218,3 +1232,10 @@
     position: inherit;
 }
 /** End of base fixes **/
+
+/** Fix to YUI tree (which is a table) when displayed within grading table. **/
+.path-mod-assign table.generaltable table td.ygtvcell {
+    border: 0;
+    padding: 0;
+}
+/** End of YUI tree fix **/

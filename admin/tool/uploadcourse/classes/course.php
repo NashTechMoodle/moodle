@@ -347,7 +347,7 @@ class tool_uploadcourse_course {
     /**
      * Get the directory of the object to restore.
      *
-     * @return string|false|null subdirectory in $CFG->tempdir/backup/..., false when an error occured
+     * @return string|false|null subdirectory in $CFG->backuptempdir/..., false when an error occured
      *                           and null when there is simply nothing.
      */
     protected function get_restore_content_dir() {
@@ -592,6 +592,23 @@ class tool_uploadcourse_course {
             $coursedata['enddate'] = strtotime($coursedata['enddate']);
         }
 
+        // If lang is specified, check the user is allowed to set that field.
+        if (!empty($coursedata['lang'])) {
+            if ($exists) {
+                $courseid = $DB->get_field('course', 'id', ['shortname' => $this->shortname]);
+                if (!has_capability('moodle/course:setforcedlanguage', context_course::instance($courseid))) {
+                    $this->error('cannotforcelang', new lang_string('cannotforcelang', 'tool_uploadcourse'));
+                    return false;
+                }
+            } else {
+                $catcontext = context_coursecat::instance($coursedata['category']);
+                if (!guess_if_creator_will_have_course_capability('moodle/course:setforcedlanguage', $catcontext)) {
+                    $this->error('cannotforcelang', new lang_string('cannotforcelang', 'tool_uploadcourse'));
+                    return false;
+                }
+            }
+        }
+
         // Ultimate check mode vs. existence.
         switch ($mode) {
             case tool_uploadcourse_processor::MODE_CREATE_NEW:
@@ -676,7 +693,15 @@ class tool_uploadcourse_course {
             return false;
         }
 
-        // TODO MDL-59259 allow to set course format options for the current course format.
+        // Add data for course format options.
+        if (isset($coursedata['format']) || $exists) {
+            if (isset($coursedata['format'])) {
+                $courseformat = course_get_format((object)['format' => $coursedata['format']]);
+            } else {
+                $courseformat = course_get_format($existingdata);
+            }
+            $coursedata += $courseformat->validate_course_format_options($this->rawdata);
+        }
 
         // Special case, 'numsections' is not a course format option any more but still should apply from defaults.
         if (!$exists || !array_key_exists('numsections', $coursedata)) {

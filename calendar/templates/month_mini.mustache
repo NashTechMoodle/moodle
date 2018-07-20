@@ -38,6 +38,7 @@
     }} data-categoryid="{{categoryid}}"{{!
     }} data-month="{{date.mon}}"{{!
     }} data-year="{{date.year}}"{{!
+    }} data-view="month"{{!
     }}>
     {{> core/overlay_loading}}
     <table class="minicalendar calendartable">
@@ -60,7 +61,7 @@
                 <a{{!
                     }} href="#"{{!
                     }} class="arrow_link next"{{!
-                    }} title="{{#str}}monthprev, calendar{{/str}}"{{!
+                    }} title="{{#str}}monthnext, calendar{{/str}}"{{!
                     }} data-year="{{nextperiod.year}}"{{!
                     }} data-month="{{nextperiod.mon}}"{{!
                 }}>

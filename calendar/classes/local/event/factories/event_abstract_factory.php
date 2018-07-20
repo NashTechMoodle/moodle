@@ -165,6 +165,12 @@ abstract class event_abstract_factory implements event_factory_interface {
             });
         }
 
+        if (!empty($dbrow->repeatid)) {
+            $repeatcollection = new repeat_event_collection($dbrow, $this);
+        } else {
+            $repeatcollection = null;
+        }
+
         $event = new event(
             $dbrow->id,
             $dbrow->name,
@@ -173,7 +179,7 @@ abstract class event_abstract_factory implements event_factory_interface {
             $course,
             $group,
             $user,
-            new repeat_event_collection($dbrow->id, $dbrow->repeatid, $this),
+            $repeatcollection,
             $module,
             $dbrow->eventtype,
             new event_times(
@@ -183,7 +189,8 @@ abstract class event_abstract_factory implements event_factory_interface {
                 (new \DateTimeImmutable())->setTimestamp($dbrow->timemodified)
             ),
             !empty($dbrow->visible),
-            $subscription
+            $subscription,
+            $dbrow->location
         );
 
         $isactionevent = !empty($dbrow->type) && $dbrow->type == CALENDAR_EVENT_TYPE_ACTION;

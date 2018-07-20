@@ -175,31 +175,32 @@ class mod_choice_lib_testcase extends externallib_advanced_testcase {
         // Setup test data.
         $course = $this->getDataGenerator()->create_course();
         $choice = $this->getDataGenerator()->create_module('choice', array('course' => $course->id));
-        $context = context_module::instance($choice->cmid);
         $cm = get_coursemodule_from_instance('choice', $choice->id);
 
         $choicewithoptions = choice_get_choice($choice->id);
         $optionids = array_keys($choicewithoptions->option);
 
         choice_user_submit_response($optionids[0], $choice, $USER->id, $course, $cm);
-        $responses = choice_get_my_response($choice, $course, $cm, $context);
+        $responses = choice_get_my_response($choice);
         $this->assertCount(1, $responses);
         $response = array_shift($responses);
         $this->assertEquals($optionids[0], $response->optionid);
 
         // Multiple responses.
         $choice = $this->getDataGenerator()->create_module('choice', array('course' => $course->id, 'allowmultiple' => 1));
-        $context = context_module::instance($choice->cmid);
         $cm = get_coursemodule_from_instance('choice', $choice->id);
 
         $choicewithoptions = choice_get_choice($choice->id);
         $optionids = array_keys($choicewithoptions->option);
 
-        choice_user_submit_response($optionids, $choice, $USER->id, $course, $cm);
-        $responses = choice_get_my_response($choice, $course, $cm, $context);
+        // Submit a response with the options reversed.
+        $selections = $optionids;
+        rsort($selections);
+        choice_user_submit_response($selections, $choice, $USER->id, $course, $cm);
+        $responses = choice_get_my_response($choice);
         $this->assertCount(count($optionids), $responses);
         foreach ($responses as $resp) {
-            $this->assertContains($resp->optionid, $optionids);
+            $this->assertEquals(array_shift($optionids), $resp->optionid);
         }
     }
 
@@ -490,196 +491,6 @@ class mod_choice_lib_testcase extends externallib_advanced_testcase {
     }
 
     /**
-     * You can't create a choice module event when the module doesn't exist.
-     */
-    public function test_mod_choice_core_calendar_validate_event_timestart_no_activity() {
-        global $CFG;
-        require_once($CFG->dirroot . "/calendar/lib.php");
-
-        $this->resetAfterTest(true);
-        $this->setAdminUser();
-        $generator = $this->getDataGenerator();
-        $course = $generator->create_course();
-
-        $event = new \calendar_event([
-            'name' => 'Test event',
-            'description' => '',
-            'format' => 1,
-            'courseid' => $course->id,
-            'groupid' => 0,
-            'userid' => 2,
-            'modulename' => 'choice',
-            'instance' => 1234,
-            'eventtype' => CHOICE_EVENT_TYPE_OPEN,
-            'timestart' => time(),
-            'timeduration' => 86400,
-            'visible' => 1
-        ]);
-
-        $this->expectException('moodle_exception');
-        mod_choice_core_calendar_validate_event_timestart($event);
-    }
-
-    /**
-     * A CHOICE_EVENT_TYPE_OPEN must be before the close time of the choice activity.
-     */
-    public function test_mod_choice_core_calendar_validate_event_timestart_valid_open_event() {
-        global $CFG, $DB;
-        require_once($CFG->dirroot . "/calendar/lib.php");
-
-        $this->resetAfterTest(true);
-        $this->setAdminUser();
-        $generator = $this->getDataGenerator();
-        $course = $generator->create_course();
-        $choicegenerator = $generator->get_plugin_generator('mod_choice');
-        $timeopen = time();
-        $timeclose = $timeopen + DAYSECS;
-        $choice = $choicegenerator->create_instance(['course' => $course->id]);
-        $choice->timeopen = $timeopen;
-        $choice->timeclose = $timeclose;
-        $DB->update_record('choice', $choice);
-
-        $event = new \calendar_event([
-            'name' => 'Test event',
-            'description' => '',
-            'format' => 1,
-            'courseid' => $course->id,
-            'groupid' => 0,
-            'userid' => 2,
-            'modulename' => 'choice',
-            'instance' => $choice->id,
-            'eventtype' => CHOICE_EVENT_TYPE_OPEN,
-            'timestart' => $timeopen,
-            'timeduration' => 86400,
-            'visible' => 1
-        ]);
-
-        mod_choice_core_calendar_validate_event_timestart($event);
-        // The function above will throw an exception if the event is
-        // invalid.
-        $this->assertTrue(true);
-    }
-
-    /**
-     * A CHOICE_EVENT_TYPE_OPEN can not have a start time set after the close time
-     * of the choice activity.
-     */
-    public function test_mod_choice_core_calendar_validate_event_timestart_invalid_open_event() {
-        global $CFG, $DB;
-        require_once($CFG->dirroot . "/calendar/lib.php");
-
-        $this->resetAfterTest(true);
-        $this->setAdminUser();
-        $generator = $this->getDataGenerator();
-        $course = $generator->create_course();
-        $choicegenerator = $generator->get_plugin_generator('mod_choice');
-        $timeopen = time();
-        $timeclose = $timeopen + DAYSECS;
-        $choice = $choicegenerator->create_instance(['course' => $course->id]);
-        $choice->timeopen = $timeopen;
-        $choice->timeclose = $timeclose;
-        $DB->update_record('choice', $choice);
-
-        $event = new \calendar_event([
-            'name' => 'Test event',
-            'description' => '',
-            'format' => 1,
-            'courseid' => $course->id,
-            'groupid' => 0,
-            'userid' => 2,
-            'modulename' => 'choice',
-            'instance' => $choice->id,
-            'eventtype' => CHOICE_EVENT_TYPE_OPEN,
-            'timestart' => $timeclose + 1,
-            'timeduration' => 86400,
-            'visible' => 1
-        ]);
-
-        $this->expectException('moodle_exception');
-        mod_choice_core_calendar_validate_event_timestart($event);
-    }
-
-    /**
-     * A CHOICE_EVENT_TYPE_CLOSE must be after the open time of the choice activity.
-     */
-    public function test_mod_choice_core_calendar_validate_event_timestart_valid_close_event() {
-        global $CFG, $DB;
-        require_once($CFG->dirroot . "/calendar/lib.php");
-
-        $this->resetAfterTest(true);
-        $this->setAdminUser();
-        $generator = $this->getDataGenerator();
-        $course = $generator->create_course();
-        $choicegenerator = $generator->get_plugin_generator('mod_choice');
-        $timeopen = time();
-        $timeclose = $timeopen + DAYSECS;
-        $choice = $choicegenerator->create_instance(['course' => $course->id]);
-        $choice->timeopen = $timeopen;
-        $choice->timeclose = $timeclose;
-        $DB->update_record('choice', $choice);
-
-        $event = new \calendar_event([
-            'name' => 'Test event',
-            'description' => '',
-            'format' => 1,
-            'courseid' => $course->id,
-            'groupid' => 0,
-            'userid' => 2,
-            'modulename' => 'choice',
-            'instance' => $choice->id,
-            'eventtype' => CHOICE_EVENT_TYPE_CLOSE,
-            'timestart' => $timeclose,
-            'timeduration' => 86400,
-            'visible' => 1
-        ]);
-
-        mod_choice_core_calendar_validate_event_timestart($event);
-        // The function above will throw an exception if the event isn't
-        // valid.
-        $this->assertTrue(true);
-    }
-
-    /**
-     * A CHOICE_EVENT_TYPE_CLOSE can not have a start time set before the open time
-     * of the choice activity.
-     */
-    public function test_mod_choice_core_calendar_validate_event_timestart_invalid_close_event() {
-        global $CFG, $DB;
-        require_once($CFG->dirroot . "/calendar/lib.php");
-
-        $this->resetAfterTest(true);
-        $this->setAdminUser();
-        $generator = $this->getDataGenerator();
-        $course = $generator->create_course();
-        $choicegenerator = $generator->get_plugin_generator('mod_choice');
-        $timeopen = time();
-        $timeclose = $timeopen + DAYSECS;
-        $choice = $choicegenerator->create_instance(['course' => $course->id]);
-        $choice->timeopen = $timeopen;
-        $choice->timeclose = $timeclose;
-        $DB->update_record('choice', $choice);
-
-        // Create a valid event.
-        $event = new \calendar_event([
-            'name' => 'Test event',
-            'description' => '',
-            'format' => 1,
-            'courseid' => $course->id,
-            'groupid' => 0,
-            'userid' => 2,
-            'modulename' => 'choice',
-            'instance' => $choice->id,
-            'eventtype' => CHOICE_EVENT_TYPE_CLOSE,
-            'timestart' => $timeopen - 1,
-            'timeduration' => 86400,
-            'visible' => 1
-        ]);
-
-        $this->expectException('moodle_exception');
-        mod_choice_core_calendar_validate_event_timestart($event);
-    }
-
-    /**
      * An unkown event type should not change the choice instance.
      */
     public function test_mod_choice_core_calendar_event_timestart_updated_unknown_event() {
@@ -714,7 +525,7 @@ class mod_choice_lib_testcase extends externallib_advanced_testcase {
             'visible' => 1
         ]);
 
-        mod_choice_core_calendar_event_timestart_updated($event);
+        mod_choice_core_calendar_event_timestart_updated($event, $choice);
 
         $choice = $DB->get_record('choice', ['id' => $choice->id]);
         $this->assertEquals($timeopen, $choice->timeopen);
@@ -763,7 +574,7 @@ class mod_choice_lib_testcase extends externallib_advanced_testcase {
         // Trigger and capture the event when adding a contact.
         $sink = $this->redirectEvents();
 
-        mod_choice_core_calendar_event_timestart_updated($event);
+        mod_choice_core_calendar_event_timestart_updated($event, $choice);
 
         $triggeredevents = $sink->get_events();
         $moduleupdatedevents = array_filter($triggeredevents, function($e) {
@@ -824,7 +635,7 @@ class mod_choice_lib_testcase extends externallib_advanced_testcase {
         // Trigger and capture the event when adding a contact.
         $sink = $this->redirectEvents();
 
-        mod_choice_core_calendar_event_timestart_updated($event);
+        mod_choice_core_calendar_event_timestart_updated($event, $choice);
 
         $triggeredevents = $sink->get_events();
         $moduleupdatedevents = array_filter($triggeredevents, function($e) {
@@ -973,5 +784,199 @@ class mod_choice_lib_testcase extends externallib_advanced_testcase {
 
         $this->assertNull($min);
         $this->assertNull($max);
+    }
+
+    /**
+     * Test choice_user_submit_response for a choice with specific options.
+     * Options:
+     * allowmultiple: false
+     * limitanswers: false
+     */
+    public function test_choice_user_submit_response_no_multiple_no_limits() {
+        global $DB;
+        $this->resetAfterTest(true);
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+        $user2 = $generator->create_user();
+
+        // User must be enrolled in the course for choice limits to be honoured properly.
+        $role = $DB->get_record('role', ['shortname' => 'student']);
+        $this->getDataGenerator()->enrol_user($user->id, $course->id, $role->id);
+        $this->getDataGenerator()->enrol_user($user2->id, $course->id, $role->id);
+
+        // Create choice, with updates allowed and a two options both limited to 1 response each.
+        $choice = $generator->get_plugin_generator('mod_choice')->create_instance([
+            'course' => $course->id,
+            'allowupdate' => false,
+            'limitanswers' => false,
+            'allowmultiple' => false,
+            'option' => ['red', 'green'],
+        ]);
+        $cm = get_coursemodule_from_instance('choice', $choice->id);
+
+        // Get the choice, with options and limits included.
+        $choicewithoptions = choice_get_choice($choice->id);
+        $optionids = array_keys($choicewithoptions->option);
+
+        // Now, save an response which includes the first option.
+        $this->assertNull(choice_user_submit_response($optionids[0], $choicewithoptions, $user->id, $course, $cm));
+
+        // Confirm that saving again without changing the selected option will not throw a 'choice full' exception.
+        $this->assertNull(choice_user_submit_response($optionids[1], $choicewithoptions, $user->id, $course, $cm));
+
+        // Confirm that saving a response for student 2 including the first option is allowed.
+        $this->assertNull(choice_user_submit_response($optionids[0], $choicewithoptions, $user2->id, $course, $cm));
+
+        // Confirm that trying to save multiple options results in an exception.
+        $this->expectException('moodle_exception');
+        choice_user_submit_response([$optionids[1], $optionids[1]], $choicewithoptions, $user->id, $course, $cm);
+    }
+
+    /**
+     * Test choice_user_submit_response for a choice with specific options.
+     * Options:
+     * allowmultiple: true
+     * limitanswers: false
+     */
+    public function test_choice_user_submit_response_multiples_no_limits() {
+        global $DB;
+        $this->resetAfterTest(true);
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+        $user2 = $generator->create_user();
+
+        // User must be enrolled in the course for choice limits to be honoured properly.
+        $role = $DB->get_record('role', ['shortname' => 'student']);
+        $this->getDataGenerator()->enrol_user($user->id, $course->id, $role->id);
+        $this->getDataGenerator()->enrol_user($user2->id, $course->id, $role->id);
+
+        // Create choice, with updates allowed and a two options both limited to 1 response each.
+        $choice = $generator->get_plugin_generator('mod_choice')->create_instance([
+            'course' => $course->id,
+            'allowupdate' => false,
+            'allowmultiple' => true,
+            'limitanswers' => false,
+            'option' => ['red', 'green'],
+        ]);
+        $cm = get_coursemodule_from_instance('choice', $choice->id);
+
+        // Get the choice, with options and limits included.
+        $choicewithoptions = choice_get_choice($choice->id);
+        $optionids = array_keys($choicewithoptions->option);
+
+        // Save a response which includes the first option only.
+        $this->assertNull(choice_user_submit_response([$optionids[0]], $choicewithoptions, $user->id, $course, $cm));
+
+        // Confirm that adding an option to the response is allowed.
+        $this->assertNull(choice_user_submit_response([$optionids[0], $optionids[1]], $choicewithoptions, $user->id, $course, $cm));
+
+        // Confirm that saving a response for student 2 including the first option is allowed.
+        $this->assertNull(choice_user_submit_response($optionids[0], $choicewithoptions, $user2->id, $course, $cm));
+
+        // Confirm that removing an option from the response is allowed.
+        $this->assertNull(choice_user_submit_response([$optionids[0]], $choicewithoptions, $user->id, $course, $cm));
+
+        // Confirm that removing all options from the response is not allowed via this method.
+        $this->expectException('moodle_exception');
+        choice_user_submit_response([], $choicewithoptions, $user->id, $course, $cm);
+    }
+
+    /**
+     * Test choice_user_submit_response for a choice with specific options.
+     * Options:
+     * allowmultiple: false
+     * limitanswers: true
+     */
+    public function test_choice_user_submit_response_no_multiples_limits() {
+        global $DB;
+        $this->resetAfterTest(true);
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+        $user2 = $generator->create_user();
+
+        // User must be enrolled in the course for choice limits to be honoured properly.
+        $role = $DB->get_record('role', ['shortname' => 'student']);
+        $this->getDataGenerator()->enrol_user($user->id, $course->id, $role->id);
+        $this->getDataGenerator()->enrol_user($user2->id, $course->id, $role->id);
+
+        // Create choice, with updates allowed and a two options both limited to 1 response each.
+        $choice = $generator->get_plugin_generator('mod_choice')->create_instance([
+            'course' => $course->id,
+            'allowupdate' => false,
+            'allowmultiple' => false,
+            'limitanswers' => true,
+            'option' => ['red', 'green'],
+            'limit' => [1, 1]
+        ]);
+        $cm = get_coursemodule_from_instance('choice', $choice->id);
+
+        // Get the choice, with options and limits included.
+        $choicewithoptions = choice_get_choice($choice->id);
+        $optionids = array_keys($choicewithoptions->option);
+
+        // Save a response which includes the first option only.
+        $this->assertNull(choice_user_submit_response($optionids[0], $choicewithoptions, $user->id, $course, $cm));
+
+        // Confirm that changing the option in the response is allowed.
+        $this->assertNull(choice_user_submit_response($optionids[1], $choicewithoptions, $user->id, $course, $cm));
+
+        // Confirm that limits are respected by trying to save the same option as another user.
+        $this->expectException('moodle_exception');
+        choice_user_submit_response($optionids[1], $choicewithoptions, $user2->id, $course, $cm);
+    }
+
+    /**
+     * Test choice_user_submit_response for a choice with specific options.
+     * Options:
+     * allowmultiple: true
+     * limitanswers: true
+     */
+    public function test_choice_user_submit_response_multiples_limits() {
+        global $DB;
+        $this->resetAfterTest(true);
+
+        $generator = $this->getDataGenerator();
+        $course = $generator->create_course();
+        $user = $generator->create_user();
+        $user2 = $generator->create_user();
+
+        // User must be enrolled in the course for choice limits to be honoured properly.
+        $role = $DB->get_record('role', ['shortname' => 'student']);
+        $this->getDataGenerator()->enrol_user($user->id, $course->id, $role->id);
+        $this->getDataGenerator()->enrol_user($user2->id, $course->id, $role->id);
+
+        // Create choice, with updates allowed and a two options both limited to 1 response each.
+        $choice = $generator->get_plugin_generator('mod_choice')->create_instance([
+            'course' => $course->id,
+            'allowupdate' => false,
+            'allowmultiple' => true,
+            'limitanswers' => true,
+            'option' => ['red', 'green'],
+            'limit' => [1, 1]
+        ]);
+        $cm = get_coursemodule_from_instance('choice', $choice->id);
+
+        // Get the choice, with options and limits included.
+        $choicewithoptions = choice_get_choice($choice->id);
+        $optionids = array_keys($choicewithoptions->option);
+
+        // Now, save a response which includes the first option only.
+        $this->assertNull(choice_user_submit_response([$optionids[0]], $choicewithoptions, $user->id, $course, $cm));
+
+        // Confirm that changing the option in the response is allowed.
+        $this->assertNull(choice_user_submit_response([$optionids[1]], $choicewithoptions, $user->id, $course, $cm));
+
+        // Confirm that adding an option to the response is allowed.
+        $this->assertNull(choice_user_submit_response([$optionids[0], $optionids[1]], $choicewithoptions, $user->id, $course, $cm));
+
+        // Confirm that limits are respected by trying to save the same option as another user.
+        $this->expectException('moodle_exception');
+        choice_user_submit_response($optionids[1], $choicewithoptions, $user2->id, $course, $cm);
     }
 }

@@ -203,13 +203,7 @@ class enrol_paypal_plugin extends enrol_plugin {
             $cost = format_float($cost, 2, false);
 
             if (isguestuser()) { // force login only for guest user, not real users with guest role
-                if (empty($CFG->loginhttps)) {
-                    $wwwroot = $CFG->wwwroot;
-                } else {
-                    // This actually is not so secure ;-), 'cause we're
-                    // in unencrypted connection...
-                    $wwwroot = str_replace("http://", "https://", $CFG->wwwroot);
-                }
+                $wwwroot = $CFG->wwwroot;
                 echo '<div class="mdl-align"><p>'.get_string('paymentrequired').'</p>';
                 echo '<p><b>'.get_string('cost').": $instance->currency $localisedcost".'</b></p>';
                 echo '<p><a href="'.$wwwroot.'/login/">'.get_string('loginsite').'</a></p>';
@@ -274,11 +268,6 @@ class enrol_paypal_plugin extends enrol_plugin {
      */
     public function restore_user_enrolment(restore_enrolments_structure_step $step, $data, $instance, $userid, $oldinstancestatus) {
         $this->enrol_user($instance, $userid, null, $data->timestart, $data->timeend, $data->status);
-    }
-
-    public function cron() {
-        $trace = new text_progress_trace();
-        $this->process_expirations($trace);
     }
 
     /**

@@ -366,7 +366,7 @@ function default_exception_handler($ex) {
             if (AJAX_SCRIPT) {
                 // If we are in an AJAX script we don't want to use PREFERRED_RENDERER_TARGET.
                 // Because we know we will want to use ajax format.
-                $renderer = $PAGE->get_renderer('core', null, 'ajax');
+                $renderer = new core_renderer_ajax($PAGE, 'ajax');
             } else {
                 $renderer = $OUTPUT;
             }
@@ -578,11 +578,8 @@ function get_exception_info($ex) {
 
     // When printing an error the continue button should never link offsite.
     // We cannot use clean_param() here as it is not guaranteed that it has been loaded yet.
-    $httpswwwroot = str_replace('http:', 'https:', $CFG->wwwroot);
     if (stripos($link, $CFG->wwwroot) === 0) {
         // Internal HTTP, all good.
-    } else if (!empty($CFG->loginhttps) && stripos($link, $httpswwwroot) === 0) {
-        // Internal HTTPS, all good.
     } else {
         // External link spotted!
         $link = $CFG->wwwroot . '/';
@@ -830,6 +827,13 @@ function initialise_fullme() {
     if (CLI_SCRIPT) {
         initialise_fullme_cli();
         return;
+    }
+    if (!empty($CFG->overridetossl)) {
+        if (strpos($CFG->wwwroot, 'http://') === 0) {
+            $CFG->wwwroot = str_replace('http:', 'https:', $CFG->wwwroot);
+        } else {
+            unset_config('overridetossl');
+        }
     }
 
     $rurl = setup_get_remote_url();
@@ -1655,6 +1659,42 @@ function get_request_storage_directory($exceptiononerror = true) {
 function make_request_directory($exceptiononerror = true) {
     $basedir = get_request_storage_directory($exceptiononerror);
     return make_unique_writable_directory($basedir, $exceptiononerror);
+}
+
+/**
+ * Get the full path of a directory under $CFG->backuptempdir.
+ *
+ * @param string $directory  the relative path of the directory under $CFG->backuptempdir
+ * @return string|false Returns full path to directory given a valid string; otherwise, false.
+ */
+function get_backup_temp_directory($directory) {
+    global $CFG;
+    if (($directory === null) || ($directory === false)) {
+        return false;
+    }
+    return "$CFG->backuptempdir/$directory";
+}
+
+/**
+ * Create a directory under $CFG->backuptempdir and make sure it is writable.
+ *
+ * Do not use for storing generic temp files - see make_temp_directory() instead for this purpose.
+ *
+ * Backup temporary files must be on a shared storage.
+ *
+ * @param string $directory  the relative path of the directory to be created under $CFG->backuptempdir
+ * @param bool $exceptiononerror throw exception if error encountered
+ * @return string|false Returns full path to directory if successful, false if not; may throw exception
+ */
+function make_backup_temp_directory($directory, $exceptiononerror = true) {
+    global $CFG;
+    if ($CFG->backuptempdir !== "$CFG->tempdir/backup") {
+        check_dir_exists($CFG->backuptempdir, true, true);
+        protect_directory($CFG->backuptempdir);
+    } else {
+        protect_directory($CFG->tempdir);
+    }
+    return make_writable_directory("$CFG->backuptempdir/$directory", $exceptiononerror);
 }
 
 /**

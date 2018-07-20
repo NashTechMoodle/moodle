@@ -64,30 +64,32 @@ class core_calendar_renderer extends plugin_renderer_base {
         $time = $calendartype->timestamp_to_date_array($calendar->time);
 
         $current = $calendar->time;
+        $prevmonthyear = $calendartype->get_prev_month($time['year'], $time['mon']);
         $prev = $calendartype->convert_to_timestamp(
-                $time['year'],
-                $time['mon'] - 1,
-                $time['mday']
+                $prevmonthyear[1],
+                $prevmonthyear[0],
+                1
             );
+        $nextmonthyear = $calendartype->get_next_month($time['year'], $time['mon']);
         $next = $calendartype->convert_to_timestamp(
-                $time['year'],
-                $time['mon'] + 1,
-                $time['mday']
+                $nextmonthyear[1],
+                $nextmonthyear[0],
+                1
             );
 
         $content = '';
 
         // Previous.
         $calendar->set_time($prev);
-        list($previousmonth, ) = calendar_get_view($calendar, 'minithree', false);
+        list($previousmonth, ) = calendar_get_view($calendar, 'minithree', false, true);
 
         // Current month.
         $calendar->set_time($current);
-        list($currentmonth, ) = calendar_get_view($calendar, 'minithree', false);
+        list($currentmonth, ) = calendar_get_view($calendar, 'minithree', false, true);
 
         // Next month.
         $calendar->set_time($next);
-        list($nextmonth, ) = calendar_get_view($calendar, 'minithree', false);
+        list($nextmonth, ) = calendar_get_view($calendar, 'minithree', false, true);
 
         // Reset the time back.
         $calendar->set_time($current);
@@ -237,19 +239,35 @@ class core_calendar_renderer extends plugin_renderer_base {
      *
      * @param moodle_url $returnurl The URL that the user should be taken too upon selecting a course.
      * @param string $label The label to use for the course select.
+     * @param int $courseid The id of the course to be selected.
      * @return string
      */
-    public function course_filter_selector(moodle_url $returnurl, $label=null) {
-        global $USER, $SESSION, $CFG;
+    public function course_filter_selector(moodle_url $returnurl, $label = null, $courseid = null) {
+        global $CFG, $DB;
 
         if (!isloggedin() or isguestuser()) {
             return '';
         }
 
-        if (has_capability('moodle/calendar:manageentries', context_system::instance()) && !empty($CFG->calendar_adminseesall)) {
-            $courses = get_courses('all', 'c.shortname','c.id,c.shortname');
-        } else {
-            $courses = enrol_get_my_courses();
+        $contextrecords = [];
+        $courses = calendar_get_default_courses($courseid, 'id, shortname');
+
+        if (!empty($courses) && count($courses) > CONTEXT_CACHE_MAX_SIZE) {
+            // We need to pull the context records from the DB to preload them
+            // below. The calendar_get_default_courses code will actually preload
+            // the contexts itself however the context cache is capped to a certain
+            // amount before it starts recycling. Unfortunately that starts to happen
+            // quite a bit if a user has access to a large number of courses (e.g. admin).
+            // So in order to avoid hitting the DB for each context as we loop below we
+            // can load all of the context records and add them to the cache just in time.
+            $courseids = array_map(function($c) {
+                return $c->id;
+            }, $courses);
+            list($insql, $params) = $DB->get_in_or_equal($courseids);
+            $contextsql = "SELECT ctx.instanceid, " . context_helper::get_preload_record_columns_sql('ctx') .
+                          " FROM {context} ctx WHERE ctx.contextlevel = ? AND ctx.instanceid $insql";
+            array_unshift($params, CONTEXT_COURSE);
+            $contextrecords = $DB->get_records_sql($contextsql, $params);
         }
 
         unset($courses[SITEID]);
@@ -257,11 +275,16 @@ class core_calendar_renderer extends plugin_renderer_base {
         $courseoptions = array();
         $courseoptions[SITEID] = get_string('fulllistofcourses');
         foreach ($courses as $course) {
+            if (isset($contextrecords[$course->id])) {
+                context_helper::preload_from_record($contextrecords[$course->id]);
+            }
             $coursecontext = context_course::instance($course->id);
             $courseoptions[$course->id] = format_string($course->shortname, true, array('context' => $coursecontext));
         }
 
-        if ($this->page->course->id !== SITEID) {
+        if ($courseid) {
+            $selected = $courseid;
+        } else if ($this->page->course->id !== SITEID) {
             $selected = $this->page->course->id;
         } else {
             $selected = '';
@@ -282,12 +305,12 @@ class core_calendar_renderer extends plugin_renderer_base {
     /**
      * Renders a table containing information about calendar subscriptions.
      *
-     * @param int $courseid
+     * @param int $unused
      * @param array $subscriptions
      * @param string $importresults
      * @return string
      */
-    public function subscription_details($courseid, $subscriptions, $importresults = '') {
+    public function subscription_details($unused = null, $subscriptions, $importresults = '') {
         $table = new html_table();
         $table->head  = array(
             get_string('colcalendar', 'calendar'),
@@ -317,7 +340,7 @@ class core_calendar_renderer extends plugin_renderer_base {
                 $lastupdated = userdate($sub->lastupdated, get_string('strftimedatetimeshort', 'langconfig'));
             }
 
-            $cell = new html_table_cell($this->subscription_action_form($sub, $courseid));
+            $cell = new html_table_cell($this->subscription_action_form($sub));
             $cell->colspan = 2;
             $type = $sub->eventtype . 'events';
 
@@ -341,10 +364,9 @@ class core_calendar_renderer extends plugin_renderer_base {
      * Creates a form to perform actions on a given subscription.
      *
      * @param stdClass $subscription
-     * @param int $courseid
      * @return string
      */
-    protected function subscription_action_form($subscription, $courseid) {
+    protected function subscription_action_form($subscription) {
         // Assemble form for the subscription row.
         $html = html_writer::start_tag('form', array('action' => new moodle_url('/calendar/managesubscriptions.php'), 'method' => 'post'));
         if (empty($subscription->url)) {
@@ -366,7 +388,6 @@ class core_calendar_renderer extends plugin_renderer_base {
             $html .= html_writer::end_tag('div');
         }
         $html .= html_writer::empty_tag('input', array('type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()));
-        $html .= html_writer::empty_tag('input', array('type' => 'hidden', 'name' => 'course', 'value' => $courseid));
         $html .= html_writer::empty_tag('input', array('type' => 'hidden', 'name' => 'id', 'value' => $subscription->id));
         $html .= html_writer::start_tag('div', array('class' => 'btn-group pull-right'));
         if (!empty($subscription->url)) {

@@ -118,15 +118,22 @@ Feature: Perform basic calendar functionality
       | Type of event | user |
       | Event title | Really awesome event! |
       | Description | Come join this awesome event, sucka! |
+      | Location | Cube office |
     And I am on "Course 1" course homepage
     When I follow "This month"
     And I click on "Really awesome event!" "link"
+    And ".location-content" "css_element" should exist
+    And I should see "Cube office"
     And I click on "Edit" "button"
     And I set the following fields to these values:
       | Event title | Mediocre event :( |
       | Description | Wait, this event isn't that great. |
+      | Location | |
     And I press "Save"
+    And I should see "Mediocre event"
+    And I click on "Mediocre event :(" "link"
     Then I should see "Mediocre event"
+    And ".location-content" "css_element" should not exist
 
   @javascript
   Scenario: Module events editing
@@ -136,21 +143,40 @@ Feature: Perform basic calendar functionality
       | activity | course | idnumber | name        | intro                   | timeopen      | timeclose     |
       | choice   | C1     | choice1  | Test choice | Test choice description | ##today## | ##today##  |
     When I follow "This month"
-    Then I should see "Choice Test choice open"
-    And I should see "Choice Test choice close"
-    When I click on "Choice Test choice open" "link"
+    Then I should see "Test choice opens"
+    And I should see "Test choice closes"
+    When I click on "Test choice opens" "link"
     Then "Delete" "button" should not exist
     And "Edit" "button" should not exist
-    And I should see "Open event"
+    And I should see "Course event"
     When I click on "Go to activity" "link"
     And I wait to be redirected
     Then I should see "Test choice"
     And I am on "Course 1" course homepage
     And I follow "This month"
-    When I click on "Choice Test choice close" "link"
+    When I click on "Test choice closes" "link"
     Then "Delete" "button" should not exist
     And "Edit" "button" should not exist
-    And I should see "Close event"
+    And I should see "Course event"
     When I click on "Go to activity" "link"
     And I wait to be redirected
     Then I should see "Test choice"
+
+  @javascript
+  Scenario: Attempt to create event without fill required fields should display validation errors
+    Given I log in as "teacher1"
+    And I am on "Course 1" course homepage
+    And I follow "This month"
+    And I click on "New event" "button"
+    When I click on "Save" "button"
+    Then I should see "Required"
+    And I am on site homepage
+    And I follow "Calendar"
+    And I click on "New event" "button"
+    And I set the field "Type of event" to "Course"
+    When I click on "Save" "button"
+    Then I should see "Required"
+    And I should see "Select a course"
+    And I set the field "Event title" to "Really awesome event!"
+    When I click on "Save" "button"
+    Then I should see "Select a course"

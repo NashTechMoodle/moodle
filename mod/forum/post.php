@@ -350,7 +350,7 @@ if (!empty($forum)) {      // User is starting a new discussion in a forum
                 $event->add_record_snapshot('forum_discussions', $discussion);
                 $event->trigger();
 
-                redirect("view.php?f=$discussion->forum");
+                redirect(new moodle_url('/mod/forum/view.php', ['f' => $discussion->forum]));
 
             } else if (forum_delete_post($post, has_capability('mod/forum:deleteanypost', $modcontext),
                 $course, $cm, $forum)) {
@@ -791,6 +791,7 @@ if ($mform_post->is_cancelled()) {
         $addpost = $fromform;
         $addpost->forum=$forum->id;
         if ($fromform->id = forum_add_new_post($addpost, $mform_post)) {
+            $fromform->deleted = 0;
             $subscribemessage = forum_post_subscription($fromform, $forum, $discussion);
 
             if (!empty($fromform->mailnow)) {
@@ -844,7 +845,7 @@ if ($mform_post->is_cancelled()) {
 
     } else { // Adding a new discussion.
         // The location to redirect to after successfully posting.
-        $redirectto = new moodle_url('view.php', array('f' => $fromform->forum));
+        $redirectto = new moodle_url('/mod/forum/view.php', array('f' => $fromform->forum));
 
         $fromform->mailnow = empty($fromform->mailnow) ? 0 : 1;
 

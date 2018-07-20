@@ -746,12 +746,17 @@ class mod_workshop_external extends external_api {
             $submission->authorid = 0;
         }
 
-        $isworkshopclosed = $workshop->phase == workshop::PHASE_CLOSED;
-        $canviewsubmissiondetail = $ownsubmission || $canviewallsubmissions;
-        // If the workshop is not closed or the user can't see the submission detail: remove grading or feedback information.
-        if (!$isworkshopclosed || !$canviewsubmissiondetail) {
+        // Remove grade, gradeover, gradeoverby, feedbackauthor and timegraded for non-teachers or invalid phase.
+        // WS mod_workshop_external::get_grades should be used for retrieving grades by students.
+        if ($workshop->phase < workshop::PHASE_EVALUATION || !$canviewallsubmissions) {
             $properties = submission_exporter::properties_definition();
             foreach ($properties as $attribute => $settings) {
+                // Special case, the feedbackauthor (and who did it) should be returned if the workshop is closed and
+                // the user can view it.
+                if (($attribute == 'feedbackauthor' || $attribute == 'gradeoverby') &&
+                        $workshop->phase == workshop::PHASE_CLOSED && $ownsubmission) {
+                    continue;
+                }
                 if (!empty($settings['optional'])) {
                     unset($submission->{$attribute});
                 }
@@ -1280,6 +1285,10 @@ class mod_workshop_external extends external_api {
             }
         }
 
+        // Get dimensions info.
+        $grader = $workshop->grading_strategy_instance();
+        $result['dimensionsinfo'] = $grader->get_dimensions_info();
+
         return $result;
     }
 
@@ -1317,6 +1326,17 @@ class mod_workshop_external extends external_api {
                             'value' => new external_value(PARAM_RAW, 'Current field value.')
                         )
                     ), 'The current field values.'
+                ),
+                'dimensionsinfo' => new external_multiple_structure(
+                    new external_single_structure(
+                        array(
+                            'id' => new external_value(PARAM_INT, 'Dimension id.'),
+                            'min' => new external_value(PARAM_FLOAT, 'Minimum grade for the dimension.'),
+                            'max' => new external_value(PARAM_FLOAT, 'Maximum grade for the dimension.'),
+                            'weight' => new external_value(PARAM_TEXT, 'The weight of the dimension.'),
+                            'scale' => new external_value(PARAM_TEXT, 'Scale items (if used).', VALUE_OPTIONAL),
+                        )
+                    ), 'The dimensions general information.'
                 ),
                 'warnings' => new external_warnings()
             )
@@ -1713,6 +1733,18 @@ class mod_workshop_external extends external_api {
         $feedbackform = $workshop->get_feedbackreviewer_form(null, $assessment, $options);
 
         $errors = $feedbackform->validation((array) $data, array());
+        // Extra checks for the new grade and weight.
+        $possibleweights = workshop::available_assessment_weights_list();
+        if ($data->weight < 0 || $data->weight > max(array_keys($possibleweights))) {
+            $errors['weight'] = 'The new weight must be higher or equal to 0 and cannot be higher than the maximum weight for
+                assessment.';
+        }
+        if (is_numeric($data->gradinggradeover) &&
+                ($data->gradinggradeover < 0 || $data->gradinggradeover > $workshop->gradinggrade)) {
+            $errors['gradinggradeover'] = 'The new grade must be higher or equal to 0 and cannot be higher than the maximum grade
+                for assessment.';
+        }
+
         // We can get several errors, return them in warnings.
         if (!empty($errors)) {
             $status = false;

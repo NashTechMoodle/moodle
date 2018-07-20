@@ -25,15 +25,20 @@ namespace mock_search;
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use core_search\manager;
+
 defined('MOODLE_INTERNAL') || die;
 
 class engine extends \core_search\engine {
 
-    /** @var int If set, waits when adding each document (microseconds) */
+    /** @var float If set, waits when adding each document (seconds) */
     protected $adddelay = 0;
 
     /** @var \core_search\document[] Documents added */
     protected $added = [];
+
+    /** @var array Schema updates applied */
+    protected $schemaupdates = [];
 
     public function is_installed() {
         return true;
@@ -45,7 +50,7 @@ class engine extends \core_search\engine {
 
     public function add_document($document, $fileindexing = false) {
         if ($this->adddelay) {
-            usleep($this->adddelay);
+            \testable_core_search::fake_current_time(manager::get_current_time() + $this->adddelay);
         }
         $this->added[] = $document;
         return true;
@@ -81,7 +86,7 @@ class engine extends \core_search\engine {
      * @param float $seconds Delay in seconds for each document
      */
     public function set_add_delay($seconds) {
-        $this->adddelay = (int)($seconds * 1000000);
+        $this->adddelay = $seconds;
     }
 
     /**
@@ -94,5 +99,21 @@ class engine extends \core_search\engine {
         $added = $this->added;
         $this->added = [];
         return $added;
+    }
+
+    public function update_schema($oldversion, $newversion) {
+        $this->schemaupdates[] = [$oldversion, $newversion];
+    }
+
+    /**
+     * Gets all schema updates applied, as an array. Each entry has an array with two values,
+     * old and new version.
+     *
+     * @return array List of schema updates for comparison
+     */
+    public function get_and_clear_schema_updates() {
+        $result = $this->schemaupdates;
+        $this->schemaupdates = [];
+        return $result;
     }
 }

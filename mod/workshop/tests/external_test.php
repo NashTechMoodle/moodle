@@ -123,7 +123,6 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
      * Test test_mod_workshop_get_workshops_by_courses
      */
     public function test_mod_workshop_get_workshops_by_courses() {
-        global $DB;
 
         // Create additional course.
         $course2 = self::getDataGenerator()->create_course();
@@ -278,7 +277,6 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
         $this->assertTrue($result['examplesassessedbeforeassessment']);
 
         // Switch to next (to assessment).
-        $workshop = new workshop($this->workshop, $this->cm, $this->course);
         $workshop->switch_phase(workshop::PHASE_ASSESSMENT);
         $result = mod_workshop_external::get_workshop_access_information($this->workshop->id);
         $result = external_api::clean_returnvalue(mod_workshop_external::get_workshop_access_information_returns(), $result);
@@ -349,7 +347,6 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
      * Test mod_workshop_get_user_plan for teachers.
      */
     public function test_mod_workshop_get_user_plan_teacher() {
-        global $DB;
 
         self::setUser($this->teacher);
         $result = mod_workshop_external::get_user_plan($this->workshop->id);
@@ -862,9 +859,9 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
      * Test test_get_submissions_published_student.
      */
     public function test_get_submissions_published_student() {
-        global $DB;
 
-        $DB->set_field('workshop', 'phase', workshop::PHASE_CLOSED, array('id' => $this->workshop->id));
+        $workshop = new workshop($this->workshop, $this->cm, $this->course);
+        $workshop->switch_phase(workshop::PHASE_CLOSED);
         // Create a couple of submissions with files.
         $workshopgenerator = $this->getDataGenerator()->get_plugin_generator('mod_workshop');
         $submission = array('published' => 1);
@@ -923,7 +920,6 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
      * Test test_get_submissions_from_students_as_teacher.
      */
     public function test_get_submissions_from_students_as_teacher() {
-        global $DB;
 
         // Create a couple of submissions with files.
         $workshopgenerator = $this->getDataGenerator()->get_plugin_generator('mod_workshop');
@@ -962,12 +958,32 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
         // Create a couple of submissions with files.
         $firstsubmissionid = $this->create_test_submission($this->student);  // Create submission with files.
 
+        $workshop = new workshop($this->workshop, $this->cm, $this->course);
+        $workshop->switch_phase(workshop::PHASE_CLOSED);
         $this->setUser($this->student);
         $result = mod_workshop_external::get_submission($firstsubmissionid);
         $result = external_api::clean_returnvalue(mod_workshop_external::get_submission_returns(), $result);
         $this->assertEquals($firstsubmissionid, $result['submission']['id']);
         $this->assertCount(1, $result['submission']['contentfiles']); // Check we retrieve submission text files.
         $this->assertCount(1, $result['submission']['attachmentfiles']); // Check we retrieve attachment files.
+        $this->assertArrayHasKey('feedbackauthor', $result['submission']);
+        $this->assertArrayNotHasKey('grade', $result['submission']);
+        $this->assertArrayNotHasKey('gradeover', $result['submission']);
+        $this->assertArrayHasKey('gradeoverby', $result['submission']);
+        $this->assertArrayNotHasKey('timegraded', $result['submission']);
+
+        // Switch to a different phase (where feedback won't be available).
+        $workshop->switch_phase(workshop::PHASE_EVALUATION);
+        $result = mod_workshop_external::get_submission($firstsubmissionid);
+        $result = external_api::clean_returnvalue(mod_workshop_external::get_submission_returns(), $result);
+        $this->assertEquals($firstsubmissionid, $result['submission']['id']);
+        $this->assertCount(1, $result['submission']['contentfiles']); // Check we retrieve submission text files.
+        $this->assertCount(1, $result['submission']['attachmentfiles']); // Check we retrieve attachment files.
+        $this->assertArrayNotHasKey('feedbackauthor', $result['submission']);
+        $this->assertArrayNotHasKey('grade', $result['submission']);
+        $this->assertArrayNotHasKey('gradeover', $result['submission']);
+        $this->assertArrayNotHasKey('gradeoverby', $result['submission']);
+        $this->assertArrayNotHasKey('timegraded', $result['submission']);
     }
 
     /**
@@ -989,6 +1005,11 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
         $this->assertEquals($firstsubmissionid, $result['submission']['id']);
         $this->assertCount(1, $result['submission']['contentfiles']); // Check we retrieve submission text files.
         $this->assertCount(1, $result['submission']['attachmentfiles']); // Check we retrieve attachment files.
+        $this->assertArrayNotHasKey('feedbackauthor', $result['submission']);
+        $this->assertArrayNotHasKey('grade', $result['submission']);
+        $this->assertArrayNotHasKey('gradeover', $result['submission']);
+        $this->assertArrayNotHasKey('gradeoverby', $result['submission']);
+        $this->assertArrayNotHasKey('timegraded', $result['submission']);
     }
 
     /**
@@ -1008,9 +1029,9 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
      * Test test_get_submission_published_student.
      */
     public function test_get_submission_published_student() {
-        global $DB;
 
-        $DB->set_field('workshop', 'phase', workshop::PHASE_CLOSED, array('id' => $this->workshop->id));
+        $workshop = new workshop($this->workshop, $this->cm, $this->course);
+        $workshop->switch_phase(workshop::PHASE_CLOSED);
         // Create a couple of submissions with files.
         $workshopgenerator = $this->getDataGenerator()->get_plugin_generator('mod_workshop');
         $submission = array('published' => 1);
@@ -1021,16 +1042,13 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
         $result = external_api::clean_returnvalue(mod_workshop_external::get_submission_returns(), $result);
         $this->assertEquals($submissionid, $result['submission']['id']);
         // Check that the student don't see the other student grade/feedback data even if is published.
-        // We shoul not see the grade or feedback information.
+        // We should not see the grade or feedback information.
         $properties = submission_exporter::properties_definition();
-        foreach ($properties as $attribute => $settings) {
-            if (!empty($settings['optional'])) {
-                if (isset($result['submission'][$attribute])) {
-                    echo "error $attribute";
-                }
-                $this->assertFalse(isset($result['submission'][$attribute]));
-            }
-        }
+        $this->assertArrayNotHasKey('feedbackauthor', $result['submission']);
+        $this->assertArrayNotHasKey('grade', $result['submission']);
+        $this->assertArrayNotHasKey('gradeover', $result['submission']);
+        $this->assertArrayNotHasKey('gradeoverby', $result['submission']);
+        $this->assertArrayNotHasKey('timegraded', $result['submission']);
 
         // Check with group restrictions.
         $this->setUser($this->anotherstudentg2);
@@ -1047,6 +1065,8 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
         // Create a couple of submissions with files.
         $workshopgenerator = $this->getDataGenerator()->get_plugin_generator('mod_workshop');
         $submissionid = $workshopgenerator->create_submission($this->workshop->id, $this->student->id);
+        $workshop = new workshop($this->workshop, $this->cm, $this->course);
+        $workshop->switch_phase(workshop::PHASE_CLOSED);
         // Create teacher feedback for submission.
         $record = new stdclass();
         $record->id = $submissionid;
@@ -1055,18 +1075,36 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
         $record->feedbackauthor = 'Hey';
         $record->feedbackauthorformat = FORMAT_MOODLE;
         $record->published = 1;
+        $record->timegraded = time();
         $DB->update_record('workshop_submissions', $record);
-
-        // Remove teacher caps.
-        assign_capability('mod/workshop:viewallsubmissions', CAP_PROHIBIT, $this->teacher->id, $this->context->id);
-        // Empty all the caches that may be affected  by this change.
-        accesslib_clear_all_caches_for_unit_testing();
-        course_modinfo::clear_instance_cache();
 
         $this->setUser($this->teacher);
         $result = mod_workshop_external::get_submission($submissionid);
         $result = external_api::clean_returnvalue(mod_workshop_external::get_submission_returns(), $result);
         $this->assertEquals($submissionid, $result['submission']['id']);
+        $this->assertEquals($record->feedbackauthor, $result['submission']['feedbackauthor']);
+        $this->assertEquals($record->gradeover, $result['submission']['gradeover']);
+        $this->assertEquals($record->gradeoverby, $result['submission']['gradeoverby']);
+        $this->assertEquals($record->timegraded, $result['submission']['timegraded']);
+
+        // Go to phase where feedback and grades are not yet available.
+        $workshop->switch_phase(workshop::PHASE_SUBMISSION);
+        $result = mod_workshop_external::get_submission($submissionid);
+        $result = external_api::clean_returnvalue(mod_workshop_external::get_submission_returns(), $result);
+        $this->assertArrayNotHasKey('feedbackauthor', $result['submission']);
+        $this->assertArrayNotHasKey('grade', $result['submission']);
+        $this->assertArrayNotHasKey('gradeover', $result['submission']);
+        $this->assertArrayNotHasKey('gradeoverby', $result['submission']);
+        $this->assertArrayNotHasKey('timegraded', $result['submission']);
+
+        // Remove teacher caps to view and go to valid phase.
+        $workshop->switch_phase(workshop::PHASE_EVALUATION);
+        unassign_capability('mod/workshop:viewallsubmissions', $this->teacherrole->id);
+        // Empty all the caches that may be affected  by this change.
+        accesslib_clear_all_caches_for_unit_testing();
+
+        $this->expectException('moodle_exception');
+        mod_workshop_external::get_submission($submissionid);
     }
 
     /**
@@ -1094,7 +1132,6 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
      * Test get_submission_assessments_student.
      */
     public function test_get_submission_assessments_student() {
-        global $DB;
 
         // Create the submission that will be deleted.
         $submissionid = $this->create_test_submission($this->student);
@@ -1109,7 +1146,8 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
             'grade' => 90,
         ));
 
-        $DB->set_field('workshop', 'phase', workshop::PHASE_CLOSED, array('id' => $this->workshop->id));
+        $workshop = new workshop($this->workshop, $this->cm, $this->course);
+        $workshop->switch_phase(workshop::PHASE_CLOSED);
         $this->setUser($this->student);
         $result = mod_workshop_external::get_submission_assessments($submissionid);
         $result = external_api::clean_returnvalue(mod_workshop_external::get_submission_assessments_returns(), $result);
@@ -1129,7 +1167,6 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
      * Test get_submission_assessments_invalid_phase.
      */
     public function test_get_submission_assessments_invalid_phase() {
-        global $DB;
 
         // Create the submission that will be deleted.
         $submissionid = $this->create_test_submission($this->student);
@@ -1170,7 +1207,6 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
      * Test get_assessment_author.
      */
     public function test_get_assessment_author() {
-        global $DB;
 
         // Create the submission.
         $submissionid = $this->create_test_submission($this->anotherstudentg1);
@@ -1182,7 +1218,8 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
         ));
 
         // Switch to closed phase.
-        $DB->set_field('workshop', 'phase', workshop::PHASE_CLOSED, array('id' => $this->workshop->id));
+        $workshop = new workshop($this->workshop, $this->cm, $this->course);
+        $workshop->switch_phase(workshop::PHASE_CLOSED);
         $this->setUser($this->anotherstudentg1);
         $result = mod_workshop_external::get_assessment($assessmentid);
         $result = external_api::clean_returnvalue(mod_workshop_external::get_assessment_returns(), $result);
@@ -1196,7 +1233,6 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
      * Test get_assessment_reviewer.
      */
     public function test_get_assessment_reviewer() {
-        global $DB;
 
         // Create the submission.
         $submissionid = $this->create_test_submission($this->anotherstudentg1);
@@ -1208,7 +1244,8 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
         ));
 
         // Switch to closed phase.
-        $DB->set_field('workshop', 'phase', workshop::PHASE_CLOSED, array('id' => $this->workshop->id));
+        $workshop = new workshop($this->workshop, $this->cm, $this->course);
+        $workshop->switch_phase(workshop::PHASE_CLOSED);
         $this->setUser($this->student);
         $result = mod_workshop_external::get_assessment($assessmentid);
         $result = external_api::clean_returnvalue(mod_workshop_external::get_assessment_returns(), $result);
@@ -1222,7 +1259,6 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
      * Test get_assessment_teacher.
      */
     public function test_get_assessment_teacher() {
-        global $DB;
 
         // Create the submission.
         $submissionid = $this->create_test_submission($this->anotherstudentg1);
@@ -1234,7 +1270,8 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
         ));
 
         // Switch to closed phase.
-        $DB->set_field('workshop', 'phase', workshop::PHASE_CLOSED, array('id' => $this->workshop->id));
+        $workshop = new workshop($this->workshop, $this->cm, $this->course);
+        $workshop->switch_phase(workshop::PHASE_CLOSED);
         $this->setUser($this->teacher);
         $result = mod_workshop_external::get_assessment($assessmentid);
         $result = external_api::clean_returnvalue(mod_workshop_external::get_assessment_returns(), $result);
@@ -1246,7 +1283,6 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
      * Test get_assessment_student_invalid_phase.
      */
     public function test_get_assessment_student_invalid_phase() {
-        global $DB;
 
         // Create the submission.
         $submissionid = $this->create_test_submission($this->anotherstudentg1);
@@ -1260,7 +1296,7 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
         // Switch to closed phase.
         $this->setUser($this->anotherstudentg1);
 
-        $this->setExpectedException('moodle_exception');
+        $this->expectException('moodle_exception');
         mod_workshop_external::get_assessment($assessmentid);
     }
 
@@ -1268,7 +1304,6 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
      * Test get_assessment_student_invalid_user.
      */
     public function test_get_assessment_student_invalid_user() {
-        global $DB;
 
         // Create the submission.
         $submissionid = $this->create_test_submission($this->anotherstudentg1);
@@ -1280,10 +1315,11 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
         ));
 
         // Switch to closed phase.
-        $DB->set_field('workshop', 'phase', workshop::PHASE_CLOSED, array('id' => $this->workshop->id));
+        $workshop = new workshop($this->workshop, $this->cm, $this->course);
+        $workshop->switch_phase(workshop::PHASE_CLOSED);
         $this->setUser($this->anotherstudentg2);
 
-        $this->setExpectedException('moodle_exception');
+        $this->expectException('moodle_exception');
         mod_workshop_external::get_assessment($assessmentid);
     }
 
@@ -1291,7 +1327,6 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
      * Test get_assessment_form_definition_reviewer_new_assessment.
      */
     public function test_get_assessment_form_definition_reviewer_new_assessment() {
-        global $DB;
 
         // Create the submission.
         $submissionid = $this->create_test_submission($this->anotherstudentg1);
@@ -1301,7 +1336,7 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
         $assessmentid = $workshop->add_allocation($submission, $this->student->id);
 
         // Switch to assessment phase.
-        $DB->set_field('workshop', 'phase', workshop::PHASE_ASSESSMENT, array('id' => $this->workshop->id));
+        $workshop->switch_phase(workshop::PHASE_ASSESSMENT);
         $this->setUser($this->student);
         $result = mod_workshop_external::get_assessment_form_definition($assessmentid);
         $result = external_api::clean_returnvalue(mod_workshop_external::get_assessment_form_definition_returns(), $result);
@@ -1312,13 +1347,19 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
                 $this->assertEquals(25, $field['value']); // Check one of the dimension fields attributes.
             }
         }
+        // Check dimensions grading info.
+        foreach ($result['dimensionsinfo'] as $dimension) {
+            $this->assertEquals(0, $dimension['min']);
+            $this->assertEquals(25, $dimension['max']);
+            $this->assertEquals(25, $dimension['weight']);
+            $this->assertFalse(isset($dimension['scale']));
+        }
     }
 
     /**
      * Test get_assessment_form_definition_teacher_new_assessment.
      */
     public function test_get_assessment_form_definition_teacher_new_assessment() {
-        global $DB;
 
         // Create the submission.
         $submissionid = $this->create_test_submission($this->anotherstudentg1);
@@ -1328,7 +1369,7 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
         $assessmentid = $workshop->add_allocation($submission, $this->student->id);
 
         // Switch to assessment phase.
-        $DB->set_field('workshop', 'phase', workshop::PHASE_ASSESSMENT, array('id' => $this->workshop->id));
+        $workshop->switch_phase(workshop::PHASE_ASSESSMENT);
         // Teachers need to be able to view assessments.
         $this->setUser($this->teacher);
         $result = mod_workshop_external::get_assessment_form_definition($assessmentid);
@@ -1340,7 +1381,6 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
      * Test get_assessment_form_definition_invalid_phase.
      */
     public function test_get_assessment_form_definition_invalid_phase() {
-        global $DB;
 
         // Create the submission.
         $submissionid = $this->create_test_submission($this->anotherstudentg1);
@@ -1349,10 +1389,10 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
         $submission = $workshop->get_submission_by_id($submissionid);
         $assessmentid = $workshop->add_allocation($submission, $this->anotherstudentg1->id);
 
-        $DB->set_field('workshop', 'phase', workshop::PHASE_EVALUATION, array('id' => $this->workshop->id));
+        $workshop->switch_phase(workshop::PHASE_EVALUATION);
         $this->setUser($this->student);
         // Since we are not reviewers we can't see the assessment until the workshop is closed.
-        $this->setExpectedException('moodle_exception');
+        $this->expectException('moodle_exception');
         mod_workshop_external::get_assessment_form_definition($assessmentid);
     }
 
@@ -1360,7 +1400,6 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
      * Test get_reviewer_assessments.
      */
     public function test_get_reviewer_assessments() {
-        global $DB;
 
         // Create the submission.
         $submissionid1 = $this->create_test_submission($this->student);
@@ -1377,7 +1416,8 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
         ));
 
         // Switch to assessment phase.
-        $DB->set_field('workshop', 'phase', workshop::PHASE_ASSESSMENT, array('id' => $this->workshop->id));
+        $workshop = new workshop($this->workshop, $this->cm, $this->course);
+        $workshop->switch_phase(workshop::PHASE_ASSESSMENT);
         $this->setUser($this->student);
         // Get my assessments.
         $result = mod_workshop_external::get_reviewer_assessments($this->workshop->id);
@@ -1402,12 +1442,12 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
      * Test get_reviewer_assessments_other_student.
      */
     public function test_get_reviewer_assessments_other_student() {
-        global $DB;
 
-        $DB->set_field('workshop', 'phase', workshop::PHASE_ASSESSMENT, array('id' => $this->workshop->id));
+        $workshop = new workshop($this->workshop, $this->cm, $this->course);
+        $workshop->switch_phase(workshop::PHASE_ASSESSMENT);
         // Try to get other user assessments.
         $this->setUser($this->student);
-        $this->setExpectedException('moodle_exception');
+        $this->expectException('moodle_exception');
         mod_workshop_external::get_reviewer_assessments($this->workshop->id, $this->anotherstudentg1->id);
     }
 
@@ -1415,12 +1455,12 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
      * Test get_reviewer_assessments_invalid_phase.
      */
     public function test_get_reviewer_assessments_invalid_phase() {
-        global $DB;
 
-        $DB->set_field('workshop', 'phase', workshop::PHASE_SUBMISSION, array('id' => $this->workshop->id));
+        $workshop = new workshop($this->workshop, $this->cm, $this->course);
+        $workshop->switch_phase(workshop::PHASE_SUBMISSION);
         // Try to get other user assessments.
         $this->setUser($this->student);
-        $this->setExpectedException('moodle_exception');
+        $this->expectException('moodle_exception');
         mod_workshop_external::get_reviewer_assessments($this->workshop->id, $this->anotherstudentg1->id);
     }
 
@@ -1428,7 +1468,6 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
      * Test update_assessment.
      */
     public function test_update_assessment() {
-        global $DB;
 
         // Create the submission.
         $submissionid = $this->create_test_submission($this->anotherstudentg1);
@@ -1438,7 +1477,7 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
         $assessmentid = $workshop->add_allocation($submission, $this->student->id);
 
         // Switch to assessment phase.
-        $DB->set_field('workshop', 'phase', workshop::PHASE_ASSESSMENT, array('id' => $this->workshop->id));
+        $workshop->switch_phase(workshop::PHASE_ASSESSMENT);
         $this->setUser($this->student);
         // Get the form definition.
         $result = mod_workshop_external::get_assessment_form_definition($assessmentid);
@@ -1533,7 +1572,6 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
      * Test get_grades.
      */
     public function test_get_grades() {
-        global $DB;
 
         $timenow = time();
         $submissiongrade = array(
@@ -1584,12 +1622,12 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
      * Test get_grades_other_student.
      */
     public function test_get_grades_other_student() {
-        global $DB;
 
         // Create the submission that will be deleted.
         $submissionid = $this->create_test_submission($this->student);
 
-        $DB->set_field('workshop', 'phase', workshop::PHASE_CLOSED, array('id' => $this->workshop->id));
+        $workshop = new workshop($this->workshop, $this->cm, $this->course);
+        $workshop->switch_phase(workshop::PHASE_CLOSED);
         $this->setUser($this->anotherstudentg1);
         $this->expectException('moodle_exception');
         mod_workshop_external::get_grades($this->workshop->id, $this->student->id);
@@ -1605,13 +1643,13 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
         $submissionid = $workshopgenerator->create_submission($this->workshop->id, $this->student->id);
         $assessmentid = $workshopgenerator->create_assessment($submissionid, $this->anotherstudentg1->id, array(
             'weight' => 3,
-            'grade' => 95,
+            'grade' => 20,
         ));
 
         $this->setUser($this->teacher);
         $feedbacktext = 'The feedback';
         $feedbackformat = FORMAT_MOODLE;
-        $weight = 25;
+        $weight = 10;
         $gradinggradeover = 10;
         $result = mod_workshop_external::evaluate_assessment($assessmentid, $feedbacktext, $feedbackformat, $weight,
             $gradinggradeover);
@@ -1620,7 +1658,23 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
 
         $assessment = $DB->get_record('workshop_assessments', array('id' => $assessmentid));
         $this->assertEquals('The feedback', $assessment->feedbackreviewer);
-        $this->assertEquals(25, $assessment->weight);
+        $this->assertEquals(10, $assessment->weight);
+
+        // Now test passing incorrect weight and grade values.
+        $weight = 17;
+        $gradinggradeover = 100;
+        $result = mod_workshop_external::evaluate_assessment($assessmentid, $feedbacktext, $feedbackformat, $weight,
+            $gradinggradeover);
+        $result = external_api::clean_returnvalue(mod_workshop_external::evaluate_assessment_returns(), $result);
+        $this->assertFalse($result['status']);
+        $this->assertCount(2, $result['warnings']);
+        $found = 0;
+        foreach ($result['warnings'] as $warning) {
+            if ($warning['item'] == 'weight' || $warning['item'] == 'gradinggradeover') {
+                $found++;
+            }
+        }
+        $this->assertEquals(2, $found);
     }
 
     /**
@@ -1631,7 +1685,7 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
         $submissionid = $workshopgenerator->create_submission($this->workshop->id, $this->student->id);
         $assessmentid = $workshopgenerator->create_assessment($submissionid, $this->anotherstudentg1->id, array(
             'weight' => 3,
-            'grade' => 95,
+            'grade' => 20,
         ));
 
         assign_capability('mod/workshop:allocate', CAP_PROHIBIT, $this->teacherrole->id, $this->context->id);
@@ -1641,8 +1695,8 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
         $this->setUser($this->teacher);
         $feedbacktext = 'The feedback';
         $feedbackformat = FORMAT_MOODLE;
-        $weight = 25;
-        $gradinggradeover = 1000;
+        $weight = 10;
+        $gradinggradeover = 19;
         $result = mod_workshop_external::evaluate_assessment($assessmentid, $feedbacktext, $feedbackformat, $weight,
             $gradinggradeover);
         $result = external_api::clean_returnvalue(mod_workshop_external::evaluate_assessment_returns(), $result);
@@ -1650,7 +1704,7 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
 
         $result = mod_workshop_external::get_assessment($assessmentid);
         $result = external_api::clean_returnvalue(mod_workshop_external::get_assessment_returns(), $result);
-        $this->assertNotEquals(25, $result['assessment']['weight']);
+        $this->assertNotEquals(10, $result['assessment']['weight']);
     }
 
     /**
@@ -1661,13 +1715,13 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
         $submissionid = $workshopgenerator->create_submission($this->workshop->id, $this->student->id);
         $assessmentid = $workshopgenerator->create_assessment($submissionid, $this->anotherstudentg1->id, array(
             'weight' => 3,
-            'grade' => 95,
+            'grade' => 20,
         ));
 
         $this->setUser($this->student);
         $feedbacktext = 'The feedback';
         $feedbackformat = FORMAT_MOODLE;
-        $weight = 25;
+        $weight = 10;
         $gradinggradeover = 50;
         $this->expectException('moodle_exception');
         mod_workshop_external::evaluate_assessment($assessmentid, $feedbacktext, $feedbackformat, $weight, $gradinggradeover);
@@ -1677,7 +1731,6 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
      * Test get_grades_report.
      */
     public function test_get_grades_report() {
-        global $DB;
 
         $workshop = new workshop($this->workshop, $this->cm, $this->course);
         $workshopgenerator = $this->getDataGenerator()->get_plugin_generator('mod_workshop');
@@ -1693,7 +1746,7 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
             'grade' => 55,
         ));
 
-        $DB->set_field('workshop', 'phase', workshop::PHASE_CLOSED, array('id' => $this->workshop->id));
+        $workshop->switch_phase(workshop::PHASE_CLOSED);
         $this->setUser($this->teacher);
         $result = mod_workshop_external::get_grades_report($this->workshop->id);
         $result = external_api::clean_returnvalue(mod_workshop_external::get_grades_report_returns(), $result);
@@ -1782,7 +1835,8 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
         $workshopgenerator = $this->getDataGenerator()->get_plugin_generator('mod_workshop');
         $submissionid = $workshopgenerator->create_submission($this->workshop->id, $this->student->id);
 
-        $DB->set_field('workshop', 'phase', workshop::PHASE_EVALUATION, array('id' => $this->workshop->id));
+        $workshop = new workshop($this->workshop, $this->cm, $this->course);
+        $workshop->switch_phase(workshop::PHASE_EVALUATION);
 
         $this->setUser($this->teacher);
         $feedbacktext = 'The feedback';
@@ -1794,7 +1848,6 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
         $result = external_api::clean_returnvalue(mod_workshop_external::evaluate_submission_returns(), $result);
         $this->assertTrue($result['status']);
 
-        $workshop = new workshop($this->workshop, $this->cm, $this->course);
         $submission = $DB->get_record('workshop_submissions', array('id' => $submissionid));
         $this->assertEquals($feedbacktext, $submission->feedbackauthor);
         $this->assertEquals($workshop->raw_grade_value($gradeover, $workshop->grade), $submission->gradeover);  // Expected grade.
@@ -1830,11 +1883,11 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
      * Test evaluate_submission_no_permissions.
      */
     public function test_evaluate_submission_no_permissions() {
-        global $DB;
 
         $workshopgenerator = $this->getDataGenerator()->get_plugin_generator('mod_workshop');
         $submissionid = $workshopgenerator->create_submission($this->workshop->id, $this->student->id);
-        $DB->set_field('workshop', 'phase', workshop::PHASE_EVALUATION, array('id' => $this->workshop->id));
+        $workshop = new workshop($this->workshop, $this->cm, $this->course);
+        $workshop->switch_phase(workshop::PHASE_EVALUATION);
 
         $this->setUser($this->student);
         $feedbacktext = 'The feedback';
@@ -1849,11 +1902,11 @@ class mod_workshop_external_testcase extends externallib_advanced_testcase {
      * Test evaluate_submission_invalid_grade.
      */
     public function test_evaluate_submission_invalid_grade() {
-        global $DB;
 
         $workshopgenerator = $this->getDataGenerator()->get_plugin_generator('mod_workshop');
         $submissionid = $workshopgenerator->create_submission($this->workshop->id, $this->student->id);
-        $DB->set_field('workshop', 'phase', workshop::PHASE_EVALUATION, array('id' => $this->workshop->id));
+        $workshop = new workshop($this->workshop, $this->cm, $this->course);
+        $workshop->switch_phase(workshop::PHASE_EVALUATION);
 
         $this->setUser($this->teacher);
         $feedbacktext = 'The feedback';

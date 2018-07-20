@@ -102,8 +102,8 @@ class event_vault implements event_vault_interface {
         $ignorehidden = true,
         callable $filter = null
     ) {
-        if ($limitnum < 1 || $limitnum > 50) {
-            throw new limit_invalid_parameter_exception("Limit must be between 1 and 50 (inclusive)");
+        if ($limitnum < 1 || $limitnum > 200) {
+            throw new limit_invalid_parameter_exception("Limit must be between 1 and 200 (inclusive)");
         }
 
         $fromquery = function($field, $timefrom, $lastseenmethod, $afterevent, $withduration) {
@@ -201,10 +201,6 @@ class event_vault implements event_vault_interface {
         event_interface $afterevent = null,
         $limitnum = 20
     ) {
-        $categoryids = array_map(function($category) {
-            return $category->id;
-        }, \coursecat::get_all());
-
         $courseids = array_map(function($course) {
             return $course->id;
         }, enrol_get_all_users_courses($user->id));
@@ -227,7 +223,7 @@ class event_vault implements event_vault_interface {
             [$user->id],
             $groupids ? $groupids : null,
             $courseids ? $courseids : null,
-            $categoryids ? $categoryids : null,
+            null, // All categories.
             true,
             true,
             function ($event) {

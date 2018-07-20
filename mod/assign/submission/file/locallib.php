@@ -260,7 +260,7 @@ class assign_submission_file extends assign_submission_plugin {
         $groupid = 0;
         // Get the group name as other fields are not transcribed in the logs and this information is important.
         if (empty($submission->userid) && !empty($submission->groupid)) {
-            $groupname = $DB->get_field('groups', 'name', array('id' => $submission->groupid), '*', MUST_EXIST);
+            $groupname = $DB->get_field('groups', 'name', array('id' => $submission->groupid), MUST_EXIST);
             $groupid = $submission->groupid;
         } else {
             $params['relateduserid'] = $submission->userid;
@@ -513,8 +513,16 @@ class assign_submission_file extends assign_submission_plugin {
      * @return bool
      */
     public function submission_is_empty(stdClass $data) {
-        $files = file_get_drafarea_files($data->files_filemanager);
-        return count($files->list) == 0;
+        global $USER;
+        $fs = get_file_storage();
+        // Get a count of all the draft files, excluding any directories.
+        $files = $fs->get_area_files(context_user::instance($USER->id)->id,
+                                     'user',
+                                     'draft',
+                                     $data->files_filemanager,
+                                     'id',
+                                     false);
+        return count($files) == 0;
     }
 
     /**

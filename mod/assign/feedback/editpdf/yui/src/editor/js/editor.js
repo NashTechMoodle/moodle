@@ -160,6 +160,14 @@ EDITOR.prototype = {
     currentannotation: null,
 
     /**
+     * Track the previous annotation so we can remove selection highlights.
+     * @property lastannotation
+     * @type M.assignfeedback_editpdf.annotation
+     * @protected
+     */
+    lastannotation: null,
+
+    /**
      * Last selected annotation tool
      * @property lastannotationtool
      * @type String
@@ -258,7 +266,7 @@ EDITOR.prototype = {
      * @method refresh_button_state
      */
     refresh_button_state: function() {
-        var button, currenttoolnode, imgurl, drawingregion;
+        var button, currenttoolnode, imgurl, drawingregion, stampimgurl, drawingcanvas;
 
         // Initalise the colour buttons.
         button = this.get_dialogue_element(SELECTOR.COMMENTCOLOURBUTTON);
@@ -283,9 +291,28 @@ EDITOR.prototype = {
         drawingregion.setAttribute('data-currenttool', this.currentedit.tool);
 
         button = this.get_dialogue_element(SELECTOR.STAMPSBUTTON);
-        button.one('img').setAttrs({'src': this.get_stamp_image_url(this.currentedit.stamp),
+        stampimgurl = this.get_stamp_image_url(this.currentedit.stamp);
+        button.one('img').setAttrs({'src': stampimgurl,
                                     'height': '16',
                                     'width': '16'});
+
+        drawingcanvas = this.get_dialogue_element(SELECTOR.DRAWINGCANVAS);
+        switch (this.currentedit.tool) {
+            case 'drag':
+                drawingcanvas.setStyle('cursor', 'move');
+                break;
+            case 'highlight':
+                drawingcanvas.setStyle('cursor', 'text');
+                break;
+            case 'select':
+                drawingcanvas.setStyle('cursor', 'default');
+                break;
+            case 'stamp':
+                drawingcanvas.setStyle('cursor', 'url(' + stampimgurl + '), crosshair');
+                break;
+            default:
+                drawingcanvas.setStyle('cursor', 'crosshair');
+        }
     },
 
     /**
@@ -931,8 +958,7 @@ EDITOR.prototype = {
             scrollleft = canvas.get('docScrollX'),
             point = {x: e.clientX - offset[0] + scrollleft,
                      y: e.clientY - offset[1] + scrolltop},
-            selected = false,
-            lastannotation;
+            selected = false;
 
         // Ignore right mouse click.
         if (e.button === 3) {
@@ -964,13 +990,13 @@ EDITOR.prototype = {
             });
 
             if (selected) {
-                lastannotation = this.currentannotation;
+                this.lastannotation = this.currentannotation;
                 this.currentannotation = selected;
-                if (lastannotation && lastannotation !== selected) {
+                if (this.lastannotation && this.lastannotation !== selected) {
                     // Redraw the last selected annotation to remove the highlight.
-                    if (lastannotation.drawable) {
-                        lastannotation.drawable.erase();
-                        this.drawables.push(lastannotation.draw());
+                    if (this.lastannotation.drawable) {
+                        this.lastannotation.drawable.erase();
+                        this.drawables.push(this.lastannotation.draw());
                     }
                 }
                 // Redraw the newly selected annotation to show the highlight.
@@ -978,6 +1004,15 @@ EDITOR.prototype = {
                     this.currentannotation.drawable.erase();
                 }
                 this.drawables.push(this.currentannotation.draw());
+            } else {
+                this.lastannotation = this.currentannotation;
+                this.currentannotation = null;
+
+                // Redraw the last selected annotation to remove the highlight.
+                if (this.lastannotation && this.lastannotation.drawable) {
+                    this.lastannotation.drawable.erase();
+                    this.drawables.push(this.lastannotation.draw());
+                }
             }
         }
         if (this.currentannotation) {
@@ -1218,13 +1253,15 @@ EDITOR.prototype = {
      * @method expandCollapseComments
      */
     expandCollapseComments: function() {
+        var comments = Y.all('.commentdrawable');
+
         if (this.collapsecomments) {
             this.collapsecomments = false;
+            comments.removeClass('commentcollapsed');
         } else {
             this.collapsecomments = true;
+            comments.addClass('commentcollapsed');
         }
-
-        this.redraw();
     },
 
     /**

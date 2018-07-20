@@ -1002,7 +1002,11 @@ class assign {
      *     [1506741172, 'The due date must be before the cutoff date']
      * ]
      *
+     * If the event does not have a valid timestart range then [false, false] will
+     * be returned.
+     *
      * @param calendar_event $event The calendar event to get the time range for
+     * @return array
      */
     function get_valid_calendar_event_timestart_range(\calendar_event $event) {
         $instance = $this->get_instance();
@@ -1018,8 +1022,9 @@ class assign {
             // the only events that can be overridden, so we can save a DB
             // query if we don't bother checking other events.
             if ($this->is_override_calendar_event($event)) {
-                // This is an override event so we should ignore it.
-                return [null, null];
+                // This is an override event so there is no valid timestart
+                // range to set it to.
+                return [false, false];
             }
 
             if ($submissionsfromdate) {
@@ -1125,11 +1130,11 @@ class assign {
                 // Remove all grades from gradebook.
                 require_once($CFG->dirroot.'/mod/assign/lib.php');
                 assign_reset_gradebook($data->courseid);
+            }
 
-                // Reset revealidentities if both submissions and grades have been reset.
-                if ($this->get_instance()->blindmarking && $this->get_instance()->revealidentities) {
-                    $DB->set_field('assign', 'revealidentities', 0, array('id' => $this->get_instance()->id));
-                }
+            // Reset revealidentities for assign if blindmarking is enabled.
+            if ($this->get_instance()->blindmarking) {
+                $DB->set_field('assign', 'revealidentities', 0, array('id' => $this->get_instance()->id));
             }
         }
 
@@ -1283,7 +1288,6 @@ class assign {
         $event->groupid = 0;
         $event->userid  = 0;
         $event->instance  = $instance->id;
-        $event->name = $instance->name;
         $event->type = CALENDAR_EVENT_TYPE_ACTION;
 
         // Convert the links to pluginfile. It is a bit hacky but at this stage the files
@@ -1310,6 +1314,7 @@ class assign {
 
         $eventtype = ASSIGN_EVENT_TYPE_DUE;
         if ($instance->duedate) {
+            $event->name = get_string('calendardue', 'assign', $instance->name);
             $event->eventtype = $eventtype;
             $event->timestart = $instance->duedate;
             $event->timesort = $instance->duedate;
@@ -1335,6 +1340,7 @@ class assign {
 
         $eventtype = ASSIGN_EVENT_TYPE_GRADINGDUE;
         if ($instance->gradingduedate) {
+            $event->name = get_string('calendargradingdue', 'assign', $instance->name);
             $event->eventtype = $eventtype;
             $event->timestart = $instance->gradingduedate;
             $event->timesort = $instance->gradingduedate;
@@ -2127,9 +2133,10 @@ class assign {
      * This means the submission modification time is more recent than the
      * grading modification time and the status is SUBMITTED.
      *
+     * @param mixed $currentgroup int|null the group for counting (if null the function will determine it)
      * @return int number of matching submissions
      */
-    public function count_submissions_need_grading() {
+    public function count_submissions_need_grading($currentgroup = null) {
         global $DB;
 
         if ($this->get_instance()->teamsubmission) {
@@ -2137,7 +2144,9 @@ class assign {
             return 0;
         }
 
-        $currentgroup = groups_get_activity_group($this->get_course_module(), true);
+        if ($currentgroup === null) {
+            $currentgroup = groups_get_activity_group($this->get_course_module(), true);
+        }
         list($esql, $params) = get_enrolled_sql($this->get_context(), 'mod/assign:submit', $currentgroup, true);
 
         $params['assignid'] = $this->get_instance()->id;
@@ -2244,12 +2253,15 @@ class assign {
      * Load a count of submissions with a specified status.
      *
      * @param string $status The submission status - should match one of the constants
+     * @param mixed $currentgroup int|null the group for counting (if null the function will determine it)
      * @return int number of matching submissions
      */
-    public function count_submissions_with_status($status) {
+    public function count_submissions_with_status($status, $currentgroup = null) {
         global $DB;
 
-        $currentgroup = groups_get_activity_group($this->get_course_module(), true);
+        if ($currentgroup === null) {
+            $currentgroup = groups_get_activity_group($this->get_course_module(), true);
+        }
         list($esql, $params) = get_enrolled_sql($this->get_context(), 'mod/assign:submit', $currentgroup, true);
 
         $params['assignid'] = $this->get_instance()->id;
@@ -3128,13 +3140,14 @@ class assign {
      * Render the content in editor that is often used by plugin.
      *
      * @param string $filearea
-     * @param int  $submissionid
+     * @param int $submissionid
      * @param string $plugintype
      * @param string $editor
      * @param string $component
+     * @param bool $shortentext Whether to shorten the text content.
      * @return string
      */
-    public function render_editor_content($filearea, $submissionid, $plugintype, $editor, $component) {
+    public function render_editor_content($filearea, $submissionid, $plugintype, $editor, $component, $shortentext = false) {
         global $CFG;
 
         $result = '';
@@ -3142,6 +3155,9 @@ class assign {
         $plugin = $this->get_submission_plugin_by_type($plugintype);
 
         $text = $plugin->get_editor_text($editor, $submissionid);
+        if ($shortentext) {
+            $text = shorten_text($text, 140);
+        }
         $format = $plugin->get_editor_format($editor, $submissionid);
 
         $finaltext = file_rewrite_pluginfile_urls($text,
@@ -3175,7 +3191,7 @@ class assign {
             } else {
                 $button->set_formats(PORTFOLIO_FORMAT_PLAINHTML);
             }
-            $result .= $button->to_html();
+            $result .= $button->to_html(PORTFOLIO_ADD_TEXT_LINK);
         }
         return $result;
     }
@@ -3277,17 +3293,21 @@ class assign {
     /**
      * Does this user have view grade or grade permission for this assignment?
      *
+     * @param mixed $groupid int|null when is set to a value, use this group instead calculating it
      * @return bool
      */
-    public function can_view_grades() {
+    public function can_view_grades($groupid = null) {
         // Permissions check.
         if (!has_any_capability(array('mod/assign:viewgrades', 'mod/assign:grade'), $this->context)) {
             return false;
         }
         // Checks for the edge case when user belongs to no groups and groupmode is sep.
         if ($this->get_course_module()->effectivegroupmode == SEPARATEGROUPS) {
+            if ($groupid === null) {
+                $groupid = groups_get_activity_allowed_groups($this->get_course_module());
+            }
             $groupflag = has_capability('moodle/site:accessallgroups', $this->get_context());
-            $groupflag = $groupflag || !empty(groups_get_activity_allowed_groups($this->get_course_module()));
+            $groupflag = $groupflag || !empty($groupid);
             return (bool)$groupflag;
         }
         return true;
@@ -3768,7 +3788,7 @@ class assign {
         $grade = $this->get_user_grade($userid, false, $attemptnumber);
         $flags = $this->get_user_flags($userid, false);
         if ($this->can_view_submission($userid)) {
-            $gradelocked = ($flags && $flags->locked) || $this->grading_disabled($userid);
+            $submissionlocked = ($flags && $flags->locked);
             $extensionduedate = null;
             if ($flags) {
                 $extensionduedate = $flags->extensionduedate;
@@ -3785,7 +3805,7 @@ class assign {
                                                                      $submissiongroup,
                                                                      $notsubmitted,
                                                                      $this->is_any_submission_plugin_enabled(),
-                                                                     $gradelocked,
+                                                                     $submissionlocked,
                                                                      $this->is_graded($userid),
                                                                      $instance->duedate,
                                                                      $instance->cutoffdate,
@@ -3966,7 +3986,7 @@ class assign {
         $grade = $this->get_user_grade($userid, false, $attemptnumber);
         $flags = $this->get_user_flags($userid, false);
         if ($this->can_view_submission($userid)) {
-            $gradelocked = ($flags && $flags->locked) || $this->grading_disabled($userid);
+            $submissionlocked = ($flags && $flags->locked);
             $extensionduedate = null;
             if ($flags) {
                 $extensionduedate = $flags->extensionduedate;
@@ -3983,7 +4003,7 @@ class assign {
                                                              $submissiongroup,
                                                              $notsubmitted,
                                                              $this->is_any_submission_plugin_enabled(),
-                                                             $gradelocked,
+                                                             $submissionlocked,
                                                              $this->is_graded($userid),
                                                              $instance->duedate,
                                                              $instance->cutoffdate,
@@ -4503,15 +4523,19 @@ class assign {
             return $this->view_notices($title, $message);
         }
 
+        $postfix = '';
+        if ($this->has_visible_attachments()) {
+            $postfix = $this->render_area_files('mod_assign', ASSIGN_INTROATTACHMENT_FILEAREA, 0);
+        }
         $o .= $this->get_renderer()->render(new assign_header($this->get_instance(),
                                                       $this->get_context(),
                                                       $this->show_intro(),
                                                       $this->get_course_module()->id,
-                                                      $title));
-        if ($userid == $USER->id) {
-            // We only show this if it their submission.
-            $o .= $this->plagiarism_print_disclosure();
-        }
+                                                      $title, '', $postfix));
+
+        // Show plagiarism disclosure for any user submitter.
+        $o .= $this->plagiarism_print_disclosure();
+
         $data = new stdClass();
         $data->userid = $userid;
         if (!$mform) {
@@ -4897,7 +4921,11 @@ class assign {
                                                                         $data));
         }
         $o = '';
-        $o .= $this->get_renderer()->header();
+        $o .= $this->get_renderer()->render(new assign_header($this->get_instance(),
+                                                              $this->get_context(),
+                                                              $this->show_intro(),
+                                                              $this->get_course_module()->id,
+                                                              get_string('confirmsubmissionheading', 'assign')));
         $submitforgradingpage = new assign_submit_for_grading_page($notifications,
                                                                    $this->get_course_module()->id,
                                                                    $mform);
@@ -4940,7 +4968,7 @@ class assign {
                     ($this->is_any_submission_plugin_enabled()) &&
                     $this->can_edit_submission($user->id);
 
-        $gradelocked = ($flags && $flags->locked) || $this->grading_disabled($user->id, false);
+        $submissionlocked = ($flags && $flags->locked);
 
         // Grading criteria preview.
         $gradingmanager = get_grading_manager($this->context, 'mod_assign', 'submissions');
@@ -4971,7 +4999,7 @@ class assign {
                                                           $submissiongroup,
                                                           $notsubmitted,
                                                           $this->is_any_submission_plugin_enabled(),
-                                                          $gradelocked,
+                                                          $submissionlocked,
                                                           $this->is_graded($user->id),
                                                           $instance->duedate,
                                                           $instance->cutoffdate,
@@ -5259,7 +5287,7 @@ class assign {
      * @param int $userid If not set, $USER->id will be used.
      * @return array $submissions All submission records for this user (or group).
      */
-    protected function get_all_submissions($userid) {
+    public function get_all_submissions($userid) {
         global $DB, $USER;
 
         // If the userid is not null then use userid.
@@ -5292,16 +5320,21 @@ class assign {
     /**
      * Creates an assign_grading_summary renderable.
      *
+     * @param mixed $activitygroup int|null the group for calculating the grading summary (if null the function will determine it)
      * @return assign_grading_summary renderable object
      */
-    public function get_assign_grading_summary_renderable() {
+    public function get_assign_grading_summary_renderable($activitygroup = null) {
 
         $instance = $this->get_instance();
+        $cm = $this->get_course_module();
 
         $draft = ASSIGN_SUBMISSION_STATUS_DRAFT;
         $submitted = ASSIGN_SUBMISSION_STATUS_SUBMITTED;
+        $isvisible = $cm->visible;
 
-        $activitygroup = groups_get_activity_group($this->get_course_module());
+        if ($activitygroup === null) {
+            $activitygroup = groups_get_activity_group($cm);
+        }
 
         if ($instance->teamsubmission) {
             $defaultteammembers = $this->get_submission_group_members(0, true);
@@ -5309,30 +5342,33 @@ class assign {
 
             $summary = new assign_grading_summary($this->count_teams($activitygroup),
                                                   $instance->submissiondrafts,
-                                                  $this->count_submissions_with_status($draft),
+                                                  $this->count_submissions_with_status($draft, $activitygroup),
                                                   $this->is_any_submission_plugin_enabled(),
-                                                  $this->count_submissions_with_status($submitted),
+                                                  $this->count_submissions_with_status($submitted, $activitygroup),
                                                   $instance->cutoffdate,
                                                   $instance->duedate,
                                                   $this->get_course_module()->id,
-                                                  $this->count_submissions_need_grading(),
+                                                  $this->count_submissions_need_grading($activitygroup),
                                                   $instance->teamsubmission,
-                                                  $warnofungroupedusers);
+                                                  $warnofungroupedusers,
+                                                  $this->can_grade(),
+                                                  $isvisible);
         } else {
             // The active group has already been updated in groups_print_activity_menu().
             $countparticipants = $this->count_participants($activitygroup);
             $summary = new assign_grading_summary($countparticipants,
                                                   $instance->submissiondrafts,
-                                                  $this->count_submissions_with_status($draft),
+                                                  $this->count_submissions_with_status($draft, $activitygroup),
                                                   $this->is_any_submission_plugin_enabled(),
-                                                  $this->count_submissions_with_status($submitted),
+                                                  $this->count_submissions_with_status($submitted, $activitygroup),
                                                   $instance->cutoffdate,
                                                   $instance->duedate,
                                                   $this->get_course_module()->id,
-                                                  $this->count_submissions_need_grading(),
+                                                  $this->count_submissions_need_grading($activitygroup),
                                                   $instance->teamsubmission,
-                                                  false);
-
+                                                  false,
+                                                  $this->can_grade(),
+                                                  $isvisible);
         }
 
         return $summary;
@@ -7274,9 +7310,6 @@ class assign {
                     $mform->addHelpButton('grade', 'gradeoutofhelp', 'assign');
                     $mform->setType('grade', PARAM_RAW);
                 } else {
-                    $mform->addElement('hidden', 'grade', $name);
-                    $mform->hardFreeze('grade');
-                    $mform->setType('grade', PARAM_RAW);
                     $strgradelocked = get_string('gradelocked', 'assign');
                     $mform->addElement('static', 'gradedisabled', $name, $strgradelocked);
                     $mform->addHelpButton('gradedisabled', 'gradeoutofhelp', 'assign');
@@ -7627,7 +7660,7 @@ class assign {
             return false;
         }
         $submission->status = ASSIGN_SUBMISSION_STATUS_DRAFT;
-        $this->update_submission($submission, $userid, true, $this->get_instance()->teamsubmission);
+        $this->update_submission($submission, $userid, false, $this->get_instance()->teamsubmission);
 
         // Give each submission plugin a chance to process the reverting to draft.
         $plugins = $this->get_submission_plugins();
@@ -8877,6 +8910,7 @@ class assign_portfolio_caller extends portfolio_module_caller_base {
      * @throws     portfolio_caller_exception
      */
     public function load_data() {
+        global $DB;
 
         $context = context_module::instance($this->cmid);
 
@@ -8885,6 +8919,23 @@ class assign_portfolio_caller extends portfolio_module_caller_base {
                 throw new portfolio_caller_exception('invalidfileandsubmissionid', 'mod_assign');
             }
 
+            $submission = $DB->get_record('assign_submission', array('id' => $this->sid));
+        } else {
+            $submissionid = $DB->get_field('files', 'itemid', array('id' => $this->fileid, 'contextid' => $context->id));
+            if ($submissionid) {
+                $submission = $DB->get_record('assign_submission', array('id' => $submissionid));
+            }
+        }
+
+        if (empty($submission)) {
+            throw new portfolio_caller_exception('filenotfound');
+        } else if ($submission->userid == 0) {
+            // This must be a group submission.
+            if (!groups_is_member($submission->groupid, $this->user->id)) {
+                throw new portfolio_caller_exception('filenotfound');
+            }
+        } else if ($this->user->id != $submission->userid) {
+            throw new portfolio_caller_exception('filenotfound');
         }
 
         // Export either an area of files or a single file (see function for more detail).

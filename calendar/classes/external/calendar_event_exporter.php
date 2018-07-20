@@ -74,6 +74,10 @@ class calendar_event_exporter extends event_exporter_base {
             'type' => PARAM_TEXT,
             'optional' => true
         ];
+        $values['draggable'] = [
+            'type' => PARAM_BOOL,
+            'default' => false
+        ];
 
         return $values;
     }
@@ -89,6 +93,12 @@ class calendar_event_exporter extends event_exporter_base {
 
         $values = parent::get_other_values($output);
         $event = $this->event;
+        $course = $this->related['course'];
+        $hascourse = !empty($course);
+
+        // By default all events that can be edited are
+        // draggable.
+        $values['draggable'] = $values['canedit'];
 
         if ($moduleproxy = $event->get_course_module()) {
             $modulename = $moduleproxy->get('modname');
@@ -101,12 +111,9 @@ class calendar_event_exporter extends event_exporter_base {
             $values['editurl'] = $editurl->out(false);
         } else if ($event->get_type() == 'category') {
             $url = $event->get_category()->get_proxied_instance()->get_view_link();
-        } else if ($event->get_type() == 'course') {
-            $url = course_get_url($event->get_course()->get('id') ?: SITEID);
         } else {
             // TODO MDL-58866 We do not have any way to find urls for events outside of course modules.
-            $course = $event->get_course()->get('id') ?: SITEID;
-            $url = course_get_url($course);
+            $url = course_get_url($hascourse ? $course : SITEID);
         }
 
         $values['url'] = $url->out(false);
@@ -157,13 +164,10 @@ class calendar_event_exporter extends event_exporter_base {
         }
 
         // Include course's shortname into the event name, if applicable.
-        $course = $this->event->get_course();
-        if ($course && $course->get('id') && $course->get('id') !== SITEID) {
+        if ($hascourse && $course->id !== SITEID) {
             $eventnameparams = (object) [
                 'name' => $values['popupname'],
-                'course' => format_string($course->get('shortname'), true, [
-                        'context' => $this->related['context'],
-                    ])
+                'course' => $values['course']->shortname,
             ];
             $values['popupname'] = get_string('eventnameandcourse', 'calendar', $eventnameparams);
         }
@@ -187,6 +191,7 @@ class calendar_event_exporter extends event_exporter_base {
         $related['daylink'] = \moodle_url::class;
         $related['type'] = '\core_calendar\type_base';
         $related['today'] = 'int';
+        $related['moduleinstance'] = 'stdClass?';
 
         return $related;
     }
@@ -216,13 +221,23 @@ class calendar_event_exporter extends event_exporter_base {
         $values = [];
         $mapper = container::get_event_mapper();
         $starttime = $event->get_times()->get_start_time();
+        $modname = $event->get_course_module()->get('modname');
+        $moduleinstance = $this->related['moduleinstance'];
 
         list($min, $max) = component_callback(
-            'mod_' . $event->get_course_module()->get('modname'),
+            'mod_' . $modname,
             'core_calendar_get_valid_event_timestart_range',
-            [$mapper->from_event_to_legacy_event($event)],
-            [null, null]
+            [$mapper->from_event_to_legacy_event($event), $moduleinstance],
+            [false, false]
         );
+
+        // The callback will return false for either of the
+        // min or max cutoffs to indicate that there are no
+        // valid timestart values. In which case the event is
+        // not draggable.
+        if ($min === false || $max === false) {
+            return ['draggable' => false];
+        }
 
         if ($min) {
             $values = array_merge($values, $this->get_module_timestamp_min_limit($starttime, $min));

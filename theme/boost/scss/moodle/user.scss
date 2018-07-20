@@ -18,9 +18,10 @@
 
     section {
         @extend .card;
-        @extend .card-block;
+        @extend .card-body;
         display: inline-block;
         width: 100%;
+        margin-bottom: 1rem;
 
         h3 {
             @extend .lead;
@@ -198,6 +199,22 @@
     white-space: nowrap;
     vertical-align: top;
     font-weight: bold;
+}
+
+.group-edit {
+    position: absolute;
+    right: 0;
+    margin-right: 0.6em;
+}
+
+.group-image {
+    display: block;
+    float: left;
+    margin-right: 1em;
+
+    .grouppicture {
+        border-radius: 50%;
+    }
 }
 
 .groupinfobox {

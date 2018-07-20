@@ -279,13 +279,16 @@ class core_admin_renderer extends plugin_renderer_base {
      * @param bool $themedesignermode Warn about the theme designer mode.
      * @param bool $devlibdir Warn about development libs directory presence.
      * @param bool $mobileconfigured Whether the mobile web services have been enabled
+     * @param bool $overridetossl Whether or not ssl is being forced.
+     * @param bool $invalidforgottenpasswordurl Whether the forgotten password URL does not link to a valid URL.
      *
      * @return string HTML to output.
      */
     public function admin_notifications_page($maturity, $insecuredataroot, $errorsdisplayed,
             $cronoverdue, $dbproblems, $maintenancemode, $availableupdates, $availableupdatesfetch,
             $buggyiconvnomb, $registered, array $cachewarnings = array(), $eventshandlers = 0,
-            $themedesignermode = false, $devlibdir = false, $mobileconfigured = false) {
+            $themedesignermode = false, $devlibdir = false, $mobileconfigured = false,
+            $overridetossl = false, $invalidforgottenpasswordurl = false) {
         global $CFG;
         $output = '';
 
@@ -301,10 +304,12 @@ class core_admin_renderer extends plugin_renderer_base {
         $output .= $this->cron_overdue_warning($cronoverdue);
         $output .= $this->db_problems($dbproblems);
         $output .= $this->maintenance_mode_warning($maintenancemode);
+        $output .= $this->overridetossl_warning($overridetossl);
         $output .= $this->cache_warnings($cachewarnings);
         $output .= $this->events_handlers($eventshandlers);
         $output .= $this->registration_warning($registered);
         $output .= $this->mobile_configuration_warning($mobileconfigured);
+        $output .= $this->forgotten_password_url_warning($invalidforgottenpasswordurl);
 
         //////////////////////////////////////////////////////////////////////////////////////////////////
         ////  IT IS ILLEGAL AND A VIOLATION OF THE GPL TO HIDE, REMOVE OR MODIFY THIS COPYRIGHT NOTICE ///
@@ -669,6 +674,20 @@ class core_admin_renderer extends plugin_renderer_base {
     }
 
     /**
+     * Render a warning that ssl is forced because the site was on loginhttps.
+     *
+     * @param bool $overridetossl Whether or not ssl is being forced.
+     * @return string
+     */
+    protected function overridetossl_warning($overridetossl) {
+        if (!$overridetossl) {
+            return '';
+        }
+        $warning = get_string('overridetossl', 'core_admin');
+        return $this->warning($warning, 'warning');
+    }
+
+    /**
      * Display a warning about installing development code if necesary.
      * @param int $maturity
      * @return string HTML to output.
@@ -844,6 +863,24 @@ class core_admin_renderer extends plugin_renderer_base {
             $settingslink = new moodle_url('/admin/settings.php', ['section' => 'mobilesettings']);
             $configurebutton = $this->single_button($settingslink, get_string('enablemobilewebservice', 'admin'));
             $output .= $this->warning(get_string('mobilenotconfiguredwarning', 'admin') . '&nbsp;' . $configurebutton);
+        }
+
+        return $output;
+    }
+
+    /**
+     * Display a warning about the forgotten password URL not linking to a valid URL.
+     *
+     * @param boolean $invalidforgottenpasswordurl true if the forgotten password URL is not valid
+     * @return string HTML to output.
+     */
+    protected function forgotten_password_url_warning($invalidforgottenpasswordurl) {
+        $output = '';
+        if ($invalidforgottenpasswordurl) {
+            $settingslink = new moodle_url('/admin/settings.php', ['section' => 'manageauths']);
+            $configurebutton = $this->single_button($settingslink, get_string('check', 'moodle'));
+            $output .= $this->warning(get_string('invalidforgottenpasswordurl', 'admin') . '&nbsp;' . $configurebutton,
+                'error alert alert-danger');
         }
 
         return $output;
@@ -1953,7 +1990,7 @@ class core_admin_renderer extends plugin_renderer_base {
                 if (empty($CFG->docroot) or $environment_result->plugin) {
                     $report = get_string($stringtouse, 'admin', $rec);
                 } else {
-                    $report = $this->doc_link(join($linkparts, '/'), get_string($stringtouse, 'admin', $rec));
+                    $report = $this->doc_link(join($linkparts, '/'), get_string($stringtouse, 'admin', $rec), true);
                 }
                 // Enclose report text in div so feedback text will be displayed underneath it.
                 $report = html_writer::div($report);
@@ -2046,5 +2083,14 @@ class core_admin_renderer extends plugin_renderer_base {
         if ($enabled) {
             return $this->warning(get_string('legacylogginginuse'));
         }
+    }
+
+    /**
+     * Display message about the benefits of registering on Moodle.org
+     *
+     * @return string
+     */
+    public function moodleorg_registration_message() {
+        return format_text(get_string('registermoodlenet', 'admin'), FORMAT_HTML, ['noclean' => true]);
     }
 }

@@ -57,7 +57,7 @@ function useredit_setup_preference_page($userid, $courseid) {
         require_login($course);
     } else if (!isloggedin()) {
         if (empty($SESSION->wantsurl)) {
-            $SESSION->wantsurl = $CFG->httpswwwroot.'/user/preferences.php';
+            $SESSION->wantsurl = $CFG->wwwroot.'/user/preferences.php';
         }
         redirect(get_login_url());
     } else {
@@ -302,6 +302,7 @@ function useredit_shared_definition(&$mform, $editoroptions, $filemanageroptions
     $choices['2'] = get_string('emaildisplaycourse');
     $mform->addElement('select', 'maildisplay', get_string('emaildisplay'), $choices);
     $mform->setDefault('maildisplay', core_user::get_property_default('maildisplay'));
+    $mform->addHelpButton('maildisplay', 'emaildisplay');
 
     $mform->addElement('text', 'city', get_string('city'), 'maxlength="120" size="21"');
     $mform->setType('city', PARAM_TEXT);

@@ -61,6 +61,7 @@ class core_calendar_lib_testcase extends advanced_testcase {
             [
                 'name' => 'Start of assignment',
                 'description' => '',
+                'location' => 'Test',
                 'format' => 1,
                 'courseid' => $course->id,
                 'groupid' => 0,
@@ -74,6 +75,7 @@ class core_calendar_lib_testcase extends advanced_testcase {
             ], [
                 'name' => 'Start of lesson',
                 'description' => '',
+                'location' => 'Test',
                 'format' => 1,
                 'courseid' => $course->id,
                 'groupid' => 0,
@@ -188,7 +190,7 @@ class core_calendar_lib_testcase extends advanced_testcase {
         $this->assertEquals($ical->parser_errors, array());
 
         $sub = calendar_get_subscription($id);
-        calendar_import_icalendar_events($ical, $sub->courseid, $sub->id);
+        calendar_import_icalendar_events($ical, null, $sub->id);
         $count = $DB->count_records('event', array('subscriptionid' => $sub->id));
         $this->assertEquals($count, 1);
 
@@ -205,7 +207,7 @@ class core_calendar_lib_testcase extends advanced_testcase {
         $this->assertEquals($ical->parser_errors, array());
 
         $sub = calendar_get_subscription($id);
-        calendar_import_icalendar_events($ical, $sub->courseid, $sub->id);
+        calendar_import_icalendar_events($ical, null, $sub->id);
         $count = $DB->count_records('event', array('subscriptionid' => $sub->id));
         $this->assertEquals($count, 1);
 
@@ -222,7 +224,7 @@ class core_calendar_lib_testcase extends advanced_testcase {
         $this->assertEquals($ical->parser_errors, array());
 
         $sub = calendar_get_subscription($id);
-        calendar_import_icalendar_events($ical, $sub->courseid, $sub->id);
+        calendar_import_icalendar_events($ical, null, $sub->id);
         $count = $DB->count_records('event', array('subscriptionid' => $sub->id));
         $this->assertEquals($count, 1);
     }
@@ -272,6 +274,7 @@ class core_calendar_lib_testcase extends advanced_testcase {
             [
                 'name' => 'Assignment 1 due date',
                 'description' => '',
+                'location' => 'Test',
                 'format' => 0,
                 'courseid' => $course->id,
                 'groupid' => 0,
@@ -285,6 +288,7 @@ class core_calendar_lib_testcase extends advanced_testcase {
             ], [
                 'name' => 'Assignment 1 due date - User override',
                 'description' => '',
+                'location' => 'Test',
                 'format' => 1,
                 'courseid' => 0,
                 'groupid' => 0,
@@ -299,6 +303,7 @@ class core_calendar_lib_testcase extends advanced_testcase {
             ], [
                 'name' => 'Assignment 1 due date - Group A override',
                 'description' => '',
+                'location' => 'Test',
                 'format' => 1,
                 'courseid' => $course->id,
                 'groupid' => $group1->id,
@@ -313,6 +318,7 @@ class core_calendar_lib_testcase extends advanced_testcase {
             ], [
                 'name' => 'Assignment 1 due date - Group B override',
                 'description' => '',
+                'location' => 'Test',
                 'format' => 1,
                 'courseid' => $course->id,
                 'groupid' => $group2->id,
@@ -372,6 +378,7 @@ class core_calendar_lib_testcase extends advanced_testcase {
             [
                 'name' => 'Repeating site event',
                 'description' => '',
+                'location' => 'Test',
                 'format' => 1,
                 'courseid' => SITEID,
                 'groupid' => 0,
@@ -387,6 +394,7 @@ class core_calendar_lib_testcase extends advanced_testcase {
             [
                 'name' => 'Repeating site event',
                 'description' => '',
+                'location' => 'Test',
                 'format' => 1,
                 'courseid' => SITEID,
                 'groupid' => 0,
@@ -671,5 +679,90 @@ class core_calendar_lib_testcase extends advanced_testcase {
         $this->assertCount(2, $typegroups);
         $this->assertEquals($group1->id, $typegroups[0]->id);
         $this->assertEquals($group2->id, $typegroups[1]->id);
+    }
+
+    public function test_calendar_get_default_courses() {
+        global $USER, $CFG;
+
+        $this->resetAfterTest(true);
+
+        $generator = $this->getDataGenerator();
+        $user = $generator->create_user();
+        $course1 = $generator->create_course();
+        $course2 = $generator->create_course();
+        $course3 = $generator->create_course();
+        $context = context_course::instance($course1->id);
+
+        $this->setAdminUser();
+        $admin = clone $USER;
+
+        $teacher = $generator->create_user();
+        $generator->enrol_user($teacher->id, $course1->id, 'teacher');
+        $generator->enrol_user($admin->id, $course1->id, 'teacher');
+
+        $CFG->calendar_adminseesall = false;
+
+        $courses = calendar_get_default_courses();
+        // Only enrolled in one course.
+        $this->assertCount(1, $courses);
+        $courses = calendar_get_default_courses($course2->id);
+        // Enrolled course + current course.
+        $this->assertCount(2, $courses);
+        $CFG->calendar_adminseesall = true;
+        $courses = calendar_get_default_courses();
+        // All courses + SITE.
+        $this->assertCount(4, $courses);
+        $courses = calendar_get_default_courses($course2->id);
+        // All courses + SITE.
+        $this->assertCount(4, $courses);
+
+        $this->setUser($teacher);
+
+        $CFG->calendar_adminseesall = false;
+
+        $courses = calendar_get_default_courses();
+        // Only enrolled in one course.
+        $this->assertCount(1, $courses);
+        $courses = calendar_get_default_courses($course2->id);
+        // Enrolled course only (ignore current).
+        $this->assertCount(1, $courses);
+        // This setting should not affect teachers.
+        $CFG->calendar_adminseesall = true;
+        $courses = calendar_get_default_courses();
+        // Only enrolled in one course.
+        $this->assertCount(1, $courses);
+        $courses = calendar_get_default_courses($course2->id);
+        // Enrolled course only (ignore current).
+        $this->assertCount(1, $courses);
+
+    }
+
+    /**
+     * Confirm that the skip events flag causes the calendar_get_view function
+     * to avoid querying for the calendar events.
+     */
+    public function test_calendar_get_view_skip_events() {
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+
+        $generator = $this->getDataGenerator();
+        $user = $generator->create_user();
+        $skipnavigation = true;
+        $skipevents = true;
+        $event = create_event([
+            'eventtype' => 'user',
+            'userid' => $user->id
+        ]);
+
+        $this->setUser($user);
+        $calendar = \calendar_information::create(time() - 10, SITEID, null);
+
+        list($data, $template) = calendar_get_view($calendar, 'day', $skipnavigation, $skipevents);
+        $this->assertEmpty($data->events);
+
+        $skipevents = false;
+        list($data, $template) = calendar_get_view($calendar, 'day', $skipnavigation, $skipevents);
+
+        $this->assertEquals($event->id, $data->events[0]->id);
     }
 }

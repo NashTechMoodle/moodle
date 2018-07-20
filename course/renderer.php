@@ -435,6 +435,9 @@ class core_course_renderer extends plugin_renderer_base {
         $output .= html_writer::empty_tag('input', array('type' => 'submit',
             'value' => get_string('go')));
         $output .= html_writer::end_tag('fieldset');
+        if ($format != 'navbar') {
+            $output .= $this->output->help_icon("coursesearch", "core");
+        }
         $output .= html_writer::end_tag('form');
 
         return $output;
@@ -551,7 +554,8 @@ class core_course_renderer extends plugin_renderer_base {
                 $output .= html_writer::empty_tag('input', array(
                     'type' => 'hidden', 'name' => 'completionstate', 'value' => $newstate));
                 $output .= html_writer::tag('button',
-                    $this->output->pix_icon('i/completion-' . $completionicon, $imgalt), array('class' => 'btn btn-link'));
+                    $this->output->pix_icon('i/completion-' . $completionicon, $imgalt),
+                        array('class' => 'btn btn-link', 'title' => $imgalt));
                 $output .= html_writer::end_tag('div');
                 $output .= html_writer::end_tag('form');
             } else {
@@ -647,7 +651,7 @@ class core_course_renderer extends plugin_renderer_base {
             }
         } else {
             $linkclasses .= ' dimmed';
-            $textclasses .= ' dimmed_text';
+            $textclasses .= ' dimmed dimmed_text';
         }
         return array($linkclasses, $textclasses);
     }
@@ -1852,7 +1856,6 @@ class core_course_renderer extends plugin_renderer_base {
             // just print search form
             $content .= $this->box_start('generalbox mdl-align');
             $content .= $this->course_search_form();
-            $content .= html_writer::tag('div', get_string("searchhelp"), array('class' => 'searchhelp'));
             $content .= $this->box_end();
         }
         return $content;
@@ -1988,13 +1991,7 @@ class core_course_renderer extends plugin_renderer_base {
         }
 
         $output = '';
-        if (!empty($CFG->navsortmycoursessort)) {
-            // sort courses the same as in navigation menu
-            $sortorder = 'visible DESC,'. $CFG->navsortmycoursessort.' ASC';
-        } else {
-            $sortorder = 'visible DESC,sortorder ASC';
-        }
-        $courses  = enrol_get_my_courses('summary, summaryformat', $sortorder);
+        $courses  = enrol_get_my_courses('summary, summaryformat');
         $rhosts   = array();
         $rcourses = array();
         if (!empty($CFG->mnet_dispatcher_mode) && $CFG->mnet_dispatcher_mode==='strict') {
@@ -2142,6 +2139,382 @@ class core_course_renderer extends plugin_renderer_base {
     public function render_activity_navigation(\core_course\output\activity_navigation $page) {
         $data = $page->export_for_template($this->output);
         return $this->output->render_from_template('core_course/activity_navigation', $data);
+    }
+
+    /**
+     * Display the selector to advertise or publish a course
+     * @param int $courseid
+     */
+    public function publicationselector($courseid) {
+        $text = '';
+
+        $advertiseurl = new moodle_url("/course/publish/metadata.php",
+            array('sesskey' => sesskey(), 'id' => $courseid, 'advertise' => true));
+        $advertisebutton = new single_button($advertiseurl, get_string('advertise', 'hub'));
+        $text .= $this->output->render($advertisebutton);
+        $text .= html_writer::tag('div', get_string('advertisepublication_help', 'hub'),
+            array('class' => 'publishhelp'));
+
+        $text .= html_writer::empty_tag('br');  // TODO Delete.
+
+        $uploadurl = new moodle_url("/course/publish/metadata.php",
+            array('sesskey' => sesskey(), 'id' => $courseid, 'share' => true));
+        $uploadbutton = new single_button($uploadurl, get_string('share', 'hub'));
+        $text .= $this->output->render($uploadbutton);
+        $text .= html_writer::tag('div', get_string('sharepublication_help', 'hub'),
+            array('class' => 'publishhelp'));
+
+        return $text;
+    }
+
+    /**
+     * Display the listing of hub where a course is registered on
+     * @param int $courseid
+     * @param array $publications
+     */
+    public function registeredonhublisting($courseid, $publications) {
+        global $CFG;
+        $table = new html_table();
+        $table->head = array(get_string('type', 'hub'),
+            get_string('date'), get_string('status', 'hub'), get_string('operation', 'hub'));
+        $table->size = array('20%', '30%', '%20', '%25');
+
+        $brtag = html_writer::empty_tag('br');
+
+        foreach ($publications as $publication) {
+
+            $params = array('id' => $publication->courseid, 'publicationid' => $publication->id);
+            $cancelurl = new moodle_url("/course/publish/index.php", $params);
+            $cancelbutton = new single_button($cancelurl, get_string('removefromhub', 'hub'));
+            $cancelbutton->class = 'centeredbutton';
+            $cancelbuttonhtml = $this->output->render($cancelbutton);
+
+            if ($publication->enrollable) {
+                $params = array('sesskey' => sesskey(), 'id' => $publication->courseid, 'publicationid' => $publication->id);
+                $updateurl = new moodle_url("/course/publish/metadata.php", $params);
+                $updatebutton = new single_button($updateurl, get_string('update', 'hub'));
+                $updatebutton->class = 'centeredbutton';
+                $updatebuttonhtml = $this->output->render($updatebutton);
+
+                $operations = $updatebuttonhtml . $brtag . $cancelbuttonhtml;
+            } else {
+                $operations = $cancelbuttonhtml;
+            }
+
+            // If the publication check time if bigger than May 2010, it has been checked.
+            if ($publication->timechecked > 1273127954) {
+                if ($publication->status == 0) {
+                    $status = get_string('statusunpublished', 'hub');
+                } else {
+                    $status = get_string('statuspublished', 'hub');
+                    if (!empty($publication->link)) {
+                        $status = html_writer::link($publication->link, $status);
+                    }
+                }
+
+                $status .= $brtag . html_writer::tag('a', get_string('updatestatus', 'hub'),
+                        array('href' => $CFG->wwwroot . '/course/publish/index.php?id='
+                            . $courseid . "&updatestatusid=" . $publication->id
+                            . "&sesskey=" . sesskey())) .
+                    $brtag . get_string('lasttimechecked', 'hub') . ": "
+                    . format_time(time() - $publication->timechecked);
+            } else {
+                $status = get_string('neverchecked', 'hub') . $brtag
+                    . html_writer::tag('a', get_string('updatestatus', 'hub'),
+                        array('href' => $CFG->wwwroot . '/course/publish/index.php?id='
+                            . $courseid . "&updatestatusid=" . $publication->id
+                            . "&sesskey=" . sesskey()));
+            }
+            // Add button cells.
+            $cells = array($publication->enrollable ?
+                get_string('advertised', 'hub') : get_string('shared', 'hub'),
+                userdate($publication->timepublished,
+                    get_string('strftimedatetimeshort')), $status, $operations);
+            $row = new html_table_row($cells);
+            $table->data[] = $row;
+        }
+
+        $contenthtml = html_writer::table($table);
+
+        return $contenthtml;
+    }
+
+    /**
+     * Display unpublishing confirmation page
+     * @param stdClass $publication
+     *      $publication->courseshortname
+     *      $publication->courseid
+     *      $publication->hubname
+     *      $publication->huburl
+     *      $publication->id
+     */
+    public function confirmunpublishing($publication) {
+        $optionsyes = array('sesskey' => sesskey(), 'id' => $publication->courseid,
+            'hubcourseid' => $publication->hubcourseid,
+            'cancel' => true, 'publicationid' => $publication->id, 'confirm' => true);
+        $optionsno = array('sesskey' => sesskey(), 'id' => $publication->courseid);
+        $publication->hubname = html_writer::tag('a', 'Moodle.net',
+            array('href' => HUB_MOODLEORGHUBURL));
+        $formcontinue = new single_button(new moodle_url("/course/publish/index.php",
+            $optionsyes), get_string('unpublish', 'hub'), 'post');
+        $formcancel = new single_button(new moodle_url("/course/publish/index.php",
+            $optionsno), get_string('cancel'), 'get');
+        return $this->output->confirm(get_string('unpublishconfirmation', 'hub', $publication),
+            $formcontinue, $formcancel);
+    }
+
+    /**
+     * Display waiting information about backup size during uploading backup process
+     * @param object $backupfile the backup stored_file
+     * @return $html string
+     */
+    public function sendingbackupinfo($backupfile) {
+        $sizeinfo = new stdClass();
+        $sizeinfo->total = number_format($backupfile->get_filesize() / 1000000, 2);
+        $html = html_writer::tag('div', get_string('sendingsize', 'hub', $sizeinfo),
+            array('class' => 'courseuploadtextinfo'));
+        return $html;
+    }
+
+    /**
+     * Display upload successfull message and a button to the publish index page
+     * @param int $id the course id
+     * @return $html string
+     */
+    public function sentbackupinfo($id) {
+        $html = html_writer::tag('div', get_string('sent', 'hub'),
+            array('class' => 'courseuploadtextinfo'));
+        $publishindexurl = new moodle_url('/course/publish/index.php',
+            array('sesskey' => sesskey(), 'id' => $id,
+                'published' => true));
+        $continue = $this->output->render(
+            new single_button($publishindexurl, get_string('continue')));
+        $html .= html_writer::tag('div', $continue, array('class' => 'sharecoursecontinue'));
+        return $html;
+    }
+
+    /**
+     * Hub information (logo - name - description - link)
+     * @param object $hubinfo
+     * @return string html code
+     */
+    public function hubinfo($hubinfo) {
+        $screenshothtml = html_writer::empty_tag('img',
+            array('src' => $hubinfo['imgurl'], 'alt' => $hubinfo['name']));
+        $hubdescription = html_writer::tag('div', $screenshothtml,
+            array('class' => 'hubscreenshot'));
+
+        $hubdescription .= html_writer::tag('a', $hubinfo['name'],
+            array('class' => 'hublink', 'href' => $hubinfo['url'],
+                'onclick' => 'this.target="_blank"'));
+
+        $hubdescription .= html_writer::tag('div', format_text($hubinfo['description'], FORMAT_PLAIN),
+            array('class' => 'hubdescription'));
+        $hubdescription = html_writer::tag('div', $hubdescription, array('class' => 'hubinfo clearfix'));
+
+        return $hubdescription;
+    }
+
+    /**
+     * Output frontpage summary text and frontpage modules (stored as section 1 in site course)
+     *
+     * This may be disabled in settings
+     *
+     * @return string
+     */
+    public function frontpage_section1() {
+        global $SITE, $USER;
+
+        $output = '';
+        $editing = $this->page->user_is_editing();
+
+        if ($editing) {
+            // Make sure section with number 1 exists.
+            course_create_sections_if_missing($SITE, 1);
+        }
+
+        $modinfo = get_fast_modinfo($SITE);
+        $section = $modinfo->get_section_info(1);
+        if (($section && (!empty($modinfo->sections[1]) or !empty($section->summary))) or $editing) {
+            $output .= $this->box_start('generalbox sitetopic');
+
+            // If currently moving a file then show the current clipboard.
+            if (ismoving($SITE->id)) {
+                $stractivityclipboard = strip_tags(get_string('activityclipboard', '', $USER->activitycopyname));
+                $output .= '<p><font size="2">';
+                $cancelcopyurl = new moodle_url('/course/mod.php', ['cancelcopy' => 'true', 'sesskey' => sesskey()]);
+                $output .= "$stractivityclipboard&nbsp;&nbsp;(" . html_writer::link($cancelcopyurl, get_string('cancel')) .')';
+                $output .= '</font></p>';
+            }
+
+            $context = context_course::instance(SITEID);
+
+            // If the section name is set we show it.
+            if (trim($section->name) !== '') {
+                $output .= $this->heading(
+                    format_string($section->name, true, array('context' => $context)),
+                    2,
+                    'sectionname'
+                );
+            }
+
+            $summarytext = file_rewrite_pluginfile_urls($section->summary,
+                'pluginfile.php',
+                $context->id,
+                'course',
+                'section',
+                $section->id);
+            $summaryformatoptions = new stdClass();
+            $summaryformatoptions->noclean = true;
+            $summaryformatoptions->overflowdiv = true;
+
+            $output .= format_text($summarytext, $section->summaryformat, $summaryformatoptions);
+
+            if ($editing && has_capability('moodle/course:update', $context)) {
+                $streditsummary = get_string('editsummary');
+                $editsectionurl = new moodle_url('/course/editsection.php', ['id' => $section->id]);
+                $output .= html_writer::link($editsectionurl, $this->pix_icon('t/edit', $streditsummary)) .
+                    "<br /><br />";
+            }
+
+            $output .= $this->course_section_cm_list($SITE, $section);
+
+            $output .= $this->course_section_add_cm_control($SITE, $section->section);
+            $output .= $this->box_end();
+        }
+
+        return $output;
+    }
+
+    /**
+     * Output news for the frontpage (extract from site-wide news forum)
+     *
+     * @param stdClass $newsforum record from db table 'forum' that represents the site news forum
+     * @return string
+     */
+    protected function frontpage_news($newsforum) {
+        global $CFG, $SITE, $SESSION, $USER;
+        require_once($CFG->dirroot .'/mod/forum/lib.php');
+
+        $output = '';
+
+        if (isloggedin()) {
+            $SESSION->fromdiscussion = $CFG->wwwroot;
+            $subtext = '';
+            if (\mod_forum\subscriptions::is_subscribed($USER->id, $newsforum)) {
+                if (!\mod_forum\subscriptions::is_forcesubscribed($newsforum)) {
+                    $subtext = get_string('unsubscribe', 'forum');
+                }
+            } else {
+                $subtext = get_string('subscribe', 'forum');
+            }
+            $suburl = new moodle_url('/mod/forum/subscribe.php', array('id' => $newsforum->id, 'sesskey' => sesskey()));
+            $output .= html_writer::tag('div', html_writer::link($suburl, $subtext), array('class' => 'subscribelink'));
+        }
+
+        ob_start();
+        forum_print_latest_discussions($SITE, $newsforum, $SITE->newsitems, 'plain', 'p.modified DESC');
+        $output .= ob_get_contents();
+        ob_end_clean();
+
+        return $output;
+    }
+
+    /**
+     * Renders part of frontpage with a skip link (i.e. "My courses", "Site news", etc.)
+     *
+     * @param string $skipdivid
+     * @param string $contentsdivid
+     * @param string $header Header of the part
+     * @param string $contents Contents of the part
+     * @return string
+     */
+    protected function frontpage_part($skipdivid, $contentsdivid, $header, $contents) {
+        $output = html_writer::link('#' . $skipdivid,
+            get_string('skipa', 'access', core_text::strtolower(strip_tags($header))),
+            array('class' => 'skip-block skip'));
+
+        // Wrap frontpage part in div container.
+        $output .= html_writer::start_tag('div', array('id' => $contentsdivid));
+        $output .= $this->heading($header);
+
+        $output .= $contents;
+
+        // End frontpage part div container.
+        $output .= html_writer::end_tag('div');
+
+        $output .= html_writer::tag('span', '', array('class' => 'skip-block-to', 'id' => $skipdivid));
+        return $output;
+    }
+
+    /**
+     * Outputs contents for frontpage as configured in $CFG->frontpage or $CFG->frontpageloggedin
+     *
+     * @return string
+     */
+    public function frontpage() {
+        global $CFG, $SITE;
+
+        $output = '';
+
+        if (isloggedin() and !isguestuser() and isset($CFG->frontpageloggedin)) {
+            $frontpagelayout = $CFG->frontpageloggedin;
+        } else {
+            $frontpagelayout = $CFG->frontpage;
+        }
+
+        foreach (explode(',', $frontpagelayout) as $v) {
+            switch ($v) {
+                // Display the main part of the front page.
+                case FRONTPAGENEWS:
+                    if ($SITE->newsitems) {
+                        // Print forums only when needed.
+                        require_once($CFG->dirroot .'/mod/forum/lib.php');
+                        if (($newsforum = forum_get_course_forum($SITE->id, 'news')) &&
+                                ($forumcontents = $this->frontpage_news($newsforum))) {
+                            $newsforumcm = get_fast_modinfo($SITE)->instances['forum'][$newsforum->id];
+                            $output .= $this->frontpage_part('skipsitenews', 'site-news-forum',
+                                $newsforumcm->get_formatted_name(), $forumcontents);
+                        }
+                    }
+                    break;
+
+                case FRONTPAGEENROLLEDCOURSELIST:
+                    $mycourseshtml = $this->frontpage_my_courses();
+                    if (!empty($mycourseshtml)) {
+                        $output .= $this->frontpage_part('skipmycourses', 'frontpage-course-list',
+                            get_string('mycourses'), $mycourseshtml);
+                        break;
+                    }
+                    // No "break" here. If there are no enrolled courses - continue to 'Available courses'.
+
+                case FRONTPAGEALLCOURSELIST:
+                    $availablecourseshtml = $this->frontpage_available_courses();
+                    if (!empty($availablecourseshtml)) {
+                        $output .= $this->frontpage_part('skipavailablecourses', 'frontpage-available-course-list',
+                            get_string('availablecourses'), $availablecourseshtml);
+                    }
+                    break;
+
+                case FRONTPAGECATEGORYNAMES:
+                    $output .= $this->frontpage_part('skipcategories', 'frontpage-category-names',
+                        get_string('categories'), $this->frontpage_categories_list());
+                    break;
+
+                case FRONTPAGECATEGORYCOMBO:
+                    $output .= $this->frontpage_part('skipcourses', 'frontpage-category-combo',
+                        get_string('courses'), $this->frontpage_combo_list());
+                    break;
+
+                case FRONTPAGECOURSESEARCH:
+                    $output .= $this->box($this->course_search_form('', 'short'), 'mdl-align');
+                    break;
+
+            }
+            $output .= '<br />';
+        }
+
+        return $output;
     }
 }
 

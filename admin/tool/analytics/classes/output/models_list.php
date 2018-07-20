@@ -119,6 +119,9 @@ class models_list implements \renderable, \templatable {
                     debugging("The time splitting method '{$modeldata->timesplitting}' should include a '{$identifier}_help'
                         string to describe its purpose.", DEBUG_DEVELOPER);
                 }
+            } else {
+                $helpicon = new \help_icon('timesplittingnotdefined', 'tool_analytics');
+                $modeldata->timesplittinghelp = $helpicon->export_for_template($output);
             }
 
             // Has this model generated predictions?.
@@ -207,19 +210,22 @@ class models_list implements \renderable, \templatable {
             }
 
             // Enable / disable.
-            if ($model->is_enabled()) {
-                $action = 'disable';
-                $text = get_string('disable');
-                $icontype = 't/block';
-            } else {
-                $action = 'enable';
-                $text = get_string('enable');
-                $icontype = 'i/checked';
+            if ($model->is_enabled() || !empty($modeldata->timesplitting)) {
+                // If there is no timesplitting method set, the model can not be enabled.
+                if ($model->is_enabled()) {
+                    $action = 'disable';
+                    $text = get_string('disable');
+                    $icontype = 't/block';
+                } else {
+                    $action = 'enable';
+                    $text = get_string('enable');
+                    $icontype = 'i/checked';
+                }
+                $urlparams['action'] = $action;
+                $url = new \moodle_url('model.php', $urlparams);
+                $icon = new \action_menu_link_secondary($url, new \pix_icon($icontype, $text), $text);
+                $actionsmenu->add($icon);
             }
-            $urlparams['action'] = $action;
-            $url = new \moodle_url('model.php', $urlparams);
-            $icon = new \action_menu_link_secondary($url, new \pix_icon($icontype, $text), $text);
-            $actionsmenu->add($icon);
 
             // Export training data.
             if (!$model->is_static() && $model->is_trained()) {
@@ -227,6 +233,16 @@ class models_list implements \renderable, \templatable {
                 $url = new \moodle_url('model.php', $urlparams);
                 $icon = new \action_menu_link_secondary($url, new \pix_icon('i/export',
                     get_string('exporttrainingdata', 'tool_analytics')), get_string('export', 'tool_analytics'));
+                $actionsmenu->add($icon);
+            }
+
+            // Invalid analysables.
+            $analyser = $model->get_analyser(['notimesplitting' => true]);
+            if (!$analyser instanceof \core_analytics\local\analyser\sitewide) {
+                $urlparams['action'] = 'invalidanalysables';
+                $url = new \moodle_url('model.php', $urlparams);
+                $pix = new \pix_icon('i/report', get_string('invalidanalysables', 'tool_analytics'));
+                $icon = new \action_menu_link_secondary($url, $pix, get_string('invalidanalysables', 'tool_analytics'));
                 $actionsmenu->add($icon);
             }
 
@@ -254,8 +270,13 @@ class models_list implements \renderable, \templatable {
         } else {
             $url = new \moodle_url('/admin/settings.php', array('section' => 'analyticssettings'),
                 'id_s_analytics_onlycli');
+
+            $langstrid = 'clievaluationandpredictionsnoadmin';
+            if (is_siteadmin()) {
+                $langstrid = 'clievaluationandpredictions';
+            }
             $data->infos = array(
-                (object)array('message' => get_string('clievaluationandpredictions', 'tool_analytics', $url->out()),
+                (object)array('message' => get_string($langstrid, 'tool_analytics', $url->out()),
                     'closebutton' => true)
             );
         }

@@ -58,9 +58,6 @@ function core_login_process_password_reset_request() {
         die; // Never reached.
     }
 
-    // Make sure we really are on the https page when https login required.
-    $PAGE->verify_https_required();
-
     // DISPLAY FORM.
 
     echo $OUTPUT->header();
@@ -212,7 +209,7 @@ function core_login_process_password_set($token) {
              WHERE upr.token = ?";
     $user = $DB->get_record_sql($sql, array($token));
 
-    $forgotpasswordurl = "{$CFG->httpswwwroot}/login/forgot_password.php";
+    $forgotpasswordurl = "{$CFG->wwwroot}/login/forgot_password.php";
     if (empty($user) or ($user->timerequested < (time() - $pwresettime - DAYSECS))) {
         // There is no valid reset request record - not even a recently expired one.
         // (suspicious)
@@ -253,7 +250,6 @@ function core_login_process_password_set($token) {
         $setdata->username2 = $user->username;
         $setdata->token = $user->token;
         $mform->set_data($setdata);
-        $PAGE->verify_https_required();
         echo $OUTPUT->header();
         echo $OUTPUT->box(get_string('setpasswordinstructions'), 'generalbox boxwidthnormal boxaligncenter');
         $mform->display();
@@ -365,6 +361,7 @@ function core_login_validate_forgot_password_data($data) {
         } else {
             if ($user = get_complete_user_data('email', $data['email'])) {
                 if (empty($user->confirmed)) {
+                    send_confirmation_email($user);
                     $errors['email'] = get_string('confirmednot');
                 }
             }
@@ -376,6 +373,7 @@ function core_login_validate_forgot_password_data($data) {
     } else {
         if ($user = get_complete_user_data('username', $data['username'])) {
             if (empty($user->confirmed)) {
+                send_confirmation_email($user);
                 $errors['email'] = get_string('confirmednot');
             }
         }
@@ -385,4 +383,16 @@ function core_login_validate_forgot_password_data($data) {
     }
 
     return $errors;
+}
+
+/**
+ * Plugins can create pre sign up requests.
+ */
+function core_login_pre_signup_requests() {
+    $callbacks = get_plugins_with_function('pre_signup_requests');
+    foreach ($callbacks as $type => $plugins) {
+        foreach ($plugins as $plugin => $pluginfunction) {
+            $pluginfunction();
+        }
+    }
 }
