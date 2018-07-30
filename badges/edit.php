@@ -92,7 +92,12 @@ if ($form->is_cancelled()) {
 } else if ($form->is_submitted() && $form->is_validated() && ($data = $form->get_data())) {
     if ($action == 'details') {
         $badge->name = $data->name;
+        $badge->obsversion = $data->obsversion;
+        $badge->version = trim($data->version);
+        $badge->language = $data->language;
         $badge->description = $data->description;
+        $badge->authorimage = $data->authorimage;
+        $badge->captionimage = $data->captionimage;
         $badge->usermodified = $USER->id;
         $badge->issuername = $data->issuername;
         $badge->issuerurl = $data->issuerurl;

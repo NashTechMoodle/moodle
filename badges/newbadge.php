@@ -77,7 +77,12 @@ if ($form->is_cancelled()) {
     $now = time();
 
     $fordb->name = $data->name;
+    $fordb->obsversion = $data->obsversion;
+    $fordb->version = $data->version;
+    $fordb->language = $data->language;
     $fordb->description = $data->description;
+    $fordb->authorimage = $data->authorimage;
+    $fordb->captionimage = $data->captionimage;
     $fordb->timecreated = $now;
     $fordb->timemodified = $now;
     $fordb->usercreated = $USER->id;

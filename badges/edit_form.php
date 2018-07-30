@@ -45,9 +45,19 @@ class edit_details_form extends moodleform {
         $mform = $this->_form;
         $badge = (isset($this->_customdata['badge'])) ? $this->_customdata['badge'] : false;
         $action = $this->_customdata['action'];
+        $languages = get_string_manager()->get_list_of_languages();
 
         $mform->addElement('header', 'badgedetails', get_string('badgedetails', 'badges'));
         $mform->addElement('text', 'name', get_string('name'), array('size' => '70'));
+        $mform->addElement('select', 'obsversion', get_string('obsversion', 'badges'),
+            array(1 => 'Version 1.x', 2 => 'Version 2.x')
+        );
+        $mform->addHelpButton('obsversion', 'obsversion', 'badges');
+        $mform->addElement('text', 'version', get_string('version', 'badges'), array('size' => '70'));
+        $mform->setType('version', PARAM_TEXT);
+        $mform->addHelpButton('version', 'version', 'badges');
+        $mform->addElement('select', 'language', get_string('language'), $languages);
+        $mform->addHelpButton('language', 'language', 'badges');
         // When downloading badge, it will be necessary to clean the name as PARAM_FILE.
         $mform->setType('name', PARAM_TEXT);
         $mform->addRule('name', null, 'required');
@@ -68,6 +78,14 @@ class edit_details_form extends moodleform {
             $mform->insertElementBefore($currentimage, 'image');
         }
         $mform->addHelpButton('image', 'badgeimage', 'badges');
+
+        $mform->addElement('text', 'authorimage', get_string('authorimage', 'badges'), array('size' => '70'));
+        $mform->setType('authorimage', PARAM_TEXT);
+        $mform->addHelpButton('authorimage', 'authorimage', 'badges');
+
+        $mform->addElement('text', 'captionimage', get_string('captionimage', 'badges'), array('size' => '70'));
+        $mform->setType('captionimage', PARAM_TEXT);
+        $mform->addHelpButton('captionimage', 'captionimage', 'badges');
 
         $mform->addElement('header', 'issuerdetails', get_string('issuerdetails', 'badges'));
 
@@ -118,6 +136,7 @@ class edit_details_form extends moodleform {
         $mform->setType('action', PARAM_TEXT);
 
         if ($action == 'new') {
+            $mform->setDefault('language',$CFG->lang);
             $this->add_action_buttons(true, get_string('createbutton', 'badges'));
         } else {
             // Add hidden fields.

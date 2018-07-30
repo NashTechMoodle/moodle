@@ -98,6 +98,15 @@ define('BADGE_MESSAGE_MONTHLY', 4);
  */
 define('BADGE_BACKPACKURL', 'https://backpack.openbadges.org');
 
+/*
+ * Only use for Open Badges 2.0 specification
+ */
+define('OB2_CONTEXT', 'https://w3id.org/openbadges/v2');
+define('OB2_TYPE_ASSERTION', 'Assertion');
+define('OB2_TYPE_BADGE', 'BadgeClass');
+define('OB2_TYPE_ISSUER', 'Issuer');
+define('OB2_TYPE_ENDORSEMENT', 'Endorsement');
+
 /**
  * Class that represents badge.
  *
@@ -126,6 +135,11 @@ class badge {
     public $notification;
     public $status = 0;
     public $nextcron;
+    public $obsversion = 1;
+    public $version;
+    public $language;
+    public $authorimage;
+    public $captionimage;
 
     /** @var array Badge criteria */
     public $criteria = array();
@@ -687,6 +701,57 @@ class badge {
             );
         $event = \core\event\badge_deleted::create($eventparams);
         $event->trigger();
+    }
+
+    /**
+     * Checks if badge has related badges.
+     *
+     * @return bool A status related badge
+     */
+    public function has_related() {
+        global $DB;
+        $related = $DB->record_exists_sql('SELECT br.id
+                    FROM {badge_related} br
+                    WHERE br.badgeid = :badgeid', array('badgeid' => $this->id));
+        return $related;
+    }
+
+    /**
+     * Return related badges
+     *
+     * @return array or object related information.
+     */
+    public function get_related_badges() {
+        global $DB;
+        $relatedbadges = $DB->get_records_sql('
+            SELECT b.id, b.name, b.version, b.language 
+            FROM {badge_related} br
+            JOIN {badge} b ON b.id = br.relatedbadgeid
+            WHERE br.badgeid = :badgeid
+        ', array('badgeid' => $this->id));
+        return $relatedbadges;
+    }
+
+    /**
+     * Return competencies of badge
+     *
+     * @return array
+     */
+    public function get_alignment() {
+        global $DB;
+        $alignment = $DB->get_records_select('badge_competencies', 'badgeid = ?', array($this->id));
+        return $alignment;
+    }
+
+    /**
+     * Return endorsement of badge
+     *
+     * @return array or object endorsement information.
+     */
+    public function get_endorsement() {
+        global $DB;
+        $endorsement = $DB->get_record_select('badge_endorsement', 'badgeid = ?', array($this->id));
+        return $endorsement;
     }
 }
 
