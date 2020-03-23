@@ -120,7 +120,7 @@ class client extends \oauth2_client {
      *
      * @return string
      */
-    protected function get_login_scopes() {
+    protected function  get_login_scopes() {
         if ($this->system) {
             return $this->issuer->get('loginscopesoffline');
         } else {

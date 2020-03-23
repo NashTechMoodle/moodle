@@ -5162,7 +5162,7 @@ class settings_navigation extends navigation_node {
             }
             $badges->add(get_string('preferences', 'badges'), new moodle_url('/badges/preferences.php'),
                     navigation_node::TYPE_SETTING);
-            if (!empty($CFG->badges_allowexternalbackpack)) {
+            if (!empty($CFG->badges_allowexternalbackpack) && empty($CFG->badges_backpacknewversion)) {
                 $badges->add(get_string('backpackdetails', 'badges'), new moodle_url('/badges/mybackpack.php'),
                         navigation_node::TYPE_SETTING);
             }

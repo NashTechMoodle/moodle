@@ -103,7 +103,7 @@ $success = optional_param('success', '', PARAM_ALPHA);
 $warning = optional_param('warning', '', PARAM_ALPHA);
 if (!empty($success)) {
     echo $OUTPUT->notification(get_string($success, 'core_badges'), 'notifysuccess');
-} else if (!empty($warning)) {
+} elseif (!empty($warning)) {
     echo $OUTPUT->notification(get_string($warning, 'core_badges'), 'warning');
 }
 $totalcount = count($badges);

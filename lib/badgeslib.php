@@ -553,7 +553,7 @@ function badges_bake($hash, $badgeid, $userid = 0, $pathhash = false) {
  * @return null|object Returns null is there is no backpack or object with backpack settings.
  */
 function get_backpack_settings($userid, $refresh = false) {
-    global $DB;
+    global $DB, $CFG;
 
     // Try to get badges from cache first.
     $badgescache = cache::make('core', 'externalbadges');
@@ -565,23 +565,42 @@ function get_backpack_settings($userid, $refresh = false) {
     $record = $DB->get_record('badge_backpack', array('userid' => $userid));
     if ($record) {
         $sitebackpack = badges_get_site_backpack($record->externalbackpackid);
-        $backpack = new \core_badges\backpack_api($sitebackpack, $record);
+        if (!empty($CFG->badges_backpacknewversion)) {
+            $backpack = new \core_badges\backpack_api2p1($sitebackpack);
+        } else {
+            $backpack = new \core_badges\backpack_api($sitebackpack, $record);
+        }
         $out = new stdClass();
         $out->backpackid = $sitebackpack->id;
 
         if ($collections = $DB->get_records('badge_external', array('backpackid' => $record->id))) {
-            $out->totalcollections = count($collections);
-            $out->totalbadges = 0;
-            $out->badges = array();
-            foreach ($collections as $collection) {
-                $badges = $backpack->get_badges($collection, true);
-                if (!empty($badges)) {
-                    $out->badges = array_merge($out->badges, $badges);
-                    $out->totalbadges += count($badges);
-                } else {
-                    $out->badges = array_merge($out->badges, array());
+            if (!empty($CFG->badges_backpacknewversion)) {
+                // Apply new backpack for Open badge v2.1
+                $out->totalcollections = 1;
+                $out->totalbadges = 0;
+                $out->badges = array();
+                foreach ($collections as $assertion) {
+                    $badge = json_decode($assertion->assertion);
+                    if (!empty($badge)) {
+                        $out->badges[$assertion->entityid] = $badge;
+                    }
+                }
+                $out->totalbadges = count($out->badges);
+            } else {
+                $out->totalcollections = count($collections);
+                $out->totalbadges = 0;
+                $out->badges = array();
+                foreach ($collections as $collection) {
+                    $badges = $backpack->get_badges($collection, true);
+                    if (!empty($badges)) {
+                        $out->badges = array_merge($out->badges, $badges);
+                        $out->totalbadges += count($badges);
+                    } else {
+                        $out->badges = array_merge($out->badges, array());
+                    }
                 }
             }
+
         } else {
             $out->totalbadges = 0;
             $out->totalcollections = 0;
@@ -797,6 +816,7 @@ function badges_update_site_backpack($id, $data) {
         $backpack->backpackweburl = $data->backpackweburl;
         $backpack->backpackapiurl = $data->backpackapiurl;
         $backpack->password = $data->password;
+        $backpack->oauth2_issuerid = $data->oauth2_issuerid;
         $DB->update_record('badge_external_backpack', $backpack);
         return true;
     }
@@ -804,13 +824,14 @@ function badges_update_site_backpack($id, $data) {
 }
 
 /**
+ * For development.
  * Is any backpack enabled that supports open badges V1?
  * @return boolean
  */
-function badges_open_badges_backpack_api() {
+function badges_open_badges_backpack_api($id = 1) {
     global $CFG;
 
-    $backpack = badges_get_site_backpack($CFG->badges_site_backpack);
+    $backpack = badges_get_site_backpack($id);
 
     if (empty($backpack->apiversion)) {
         return OPEN_BADGES_V2;
@@ -1175,4 +1196,42 @@ function badges_verify_site_backpack() {
         }
     }
     return '';
+}
+
+/**
+ * For developement.
+ */
+function badges_get_oauth2_service_options() {
+    global $DB;
+
+    $issuers = core\oauth2\api::get_all_issuers();
+    $options = ['' => 'None'];
+    foreach ($issuers as $issuer) {
+        $options[$issuer->get('id')] = $issuer->get('name');
+    }
+
+    return $options;
+}
+
+/**
+ * For developement.
+ */
+function badges_get_config_active_backpack() {
+    global $CFG;
+    if (is_numeric($CFG->badges_site_backpack)) {
+        return [$CFG->badges_site_backpack];
+    } else {
+        return explode(",", $CFG->badges_site_backpack);
+    }
+}
+
+/**
+ * For developement.
+ */
+function badges_get_site_active_backpacks() {
+    global $CFG, $DB;
+    list($bsql, $params) = $DB->get_in_or_equal(badges_get_config_active_backpack());
+    $sql = "SELECT * FROM {badge_external_backpack} WHERE id $bsql";
+    $activebackpacks = $DB->get_records_sql($sql, $params);
+    return $activebackpacks;
 }

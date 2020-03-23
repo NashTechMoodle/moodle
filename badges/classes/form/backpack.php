@@ -54,7 +54,6 @@ class backpack extends moodleform {
         $mform->addElement('hidden', 'userid', $USER->id);
         $mform->setType('userid', PARAM_INT);
         $sitebackpack = badges_get_site_backpack($CFG->badges_site_backpack);
-
         if (isset($this->_customdata['email'])) {
             // Email will be passed in when we're in the process of verifying the user's email address,
             // so set the connection status, lock the email field, and provide options to resend the verification

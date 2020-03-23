@@ -1,0 +1,95 @@
+@core @core_badges @core_badges_backpack @_file_upload
+Feature: Backpack badges
+  The settings to connect to backpack with OAuth2 service
+  As an learner
+  I need to verify display backpack in the my profile
+
+  Background:
+    Given the following "badge external backpack" exist:
+      | backpackapiurl                               | backpackweburl           | apiversion |
+      | https://dc.imsglobal.org/obchost/ims/ob/v2p1 | https://dc.imsglobal.org | 2          |
+    Given the following "users" exist:
+      | username | firstname | lastname | email                |
+      | student1 | Student   | 1        | student1@example.com |
+
+  @javascript
+  Scenario: Verify backback settings
+    Given I am on homepage
+    And I log in as "admin"
+    Given I navigate to "Badges > Add a new badge" in site administration
+    And I set the following fields to these values:
+      | Name          | Test badge verify backpack |
+      | Version       | v1                         |
+      | Language      | English                    |
+      | Description   | Test badge description     |
+      | Image author  | http://author.example.com  |
+      | Image caption | Test caption image         |
+      | issuername    | Test Badge Site            |
+      | issuercontact | testuser@example.com       |
+    And I upload "badges/tests/behat/badge.png" file to "Image" filemanager
+    And I press "Create badge"
+    And I set the field "type" to "Manual issue by role"
+    And I set the field "Manager" to "1"
+    And I press "Save"
+    And I press "Enable access"
+    And I press "Continue"
+    And I follow "Recipients (0)"
+    And I press "Award badge"
+    And I set the field "potentialrecipients[]" to "Student 1 (student1@example.com)"
+    And I press "Award badge"
+    And I navigate to "Badges > Backpack settings" in site administration
+    And I set the following fields to these values:
+      | External backpack connection | 1                        |
+      | Badges v2.1 support          | 1                        |
+      | Active external backpack     | https://dc.imsglobal.org |
+    And I press "Save changes"
+    And I log out
+    Given I am on homepage
+    And I log in as "student1"
+    And I click on "[id='action-menu-toggle-1']" "css_element"
+    And I click on "[data-title='preferences,moodle']" "css_element"
+    And I follow "Manage badges"
+    And I should not see "Connect to https://dc.imsglobal.com"
+
+  @javascript
+  Scenario: User has been connected backpack
+    Given I am on homepage
+    And I log in as "admin"
+    Given I navigate to "Badges > Add a new badge" in site administration
+    And I set the following fields to these values:
+      | Name           | Test badge verify backpack |
+      | Version        | v1                         |
+      | Language       | English                    |
+      | Description    | Test badge description     |
+      | Image author   | http://author.example.com  |
+      | Image caption  | Test caption image         |
+      | issuername     | Test Badge Site            |
+      | issuercontact  | testuser@example.com       |
+    And I upload "badges/tests/behat/badge.png" file to "Image" filemanager
+    And I press "Create badge"
+    And I set the field "type" to "Manual issue by role"
+    And I set the field "Manager" to "1"
+    And I press "Save"
+    And I press "Enable access"
+    And I press "Continue"
+    And I follow "Recipients (0)"
+    And I press "Award badge"
+    And I set the field "potentialrecipients[]" to "Student 1 (student1@example.com)"
+    And I press "Award badge"
+    And I navigate to "Badges > Backpack settings" in site administration
+    And I set the following fields to these values:
+      | External backpack connection | 1                        |
+      | Badges v2.1 support          | 1                        |
+      | Active external backpack     | https://dc.imsglobal.org |
+    And I press "Save changes"
+    And I log out
+    Given the following "setup backpack connected" exist:
+      | user     |  externalbackpack        |
+      | student1 | https://dc.imsglobal.org |
+    And I log in as "student1"
+    And I click on "[id='action-menu-toggle-1']" "css_element"
+    And I click on "[data-title='preferences,moodle']" "css_element"
+    And I follow "Manage badges"
+    And I should not see "Export to https://dc.imsglobal.com"
+    And I should not see "Import from https://dc.imsglobal.com"
+    And I should not see "Disconnect https://dc.imsglobal.com"

@@ -70,7 +70,7 @@ class external_backpacks_page implements \renderable {
             }
             $data->backpacks[] = $backpack;
         }
-        $data->warning = badges_verify_site_backpack();
+       // $data->warning = badges_verify_site_backpack();
 
         return $data;
     }

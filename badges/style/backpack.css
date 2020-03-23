@@ -1,0 +1,19 @@
+@charset "UTF-8";
+
+#fgroup_id_confirmbadge > .col-md-3 {
+    display: none;
+}
+#fgroup_id_confirmbadge > .col-md-9 {
+    width: 100%;
+    max-width: 100%;
+    flex: auto;
+}
+#fgroup_id_confirmbadge > .col-md-9 .form-check-inline {
+    width: 150px;
+    display: inline-block;
+}
+#fgroup_id_confirmbadge > .col-md-9 .form-check-inline > * {
+    display: block;
+    text-align: center;
+    margin: 4px auto;
+}
