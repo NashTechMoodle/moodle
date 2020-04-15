@@ -88,7 +88,6 @@ class backpack_api {
         $admin = get_admin();
 
         $this->backpackapiurl = $sitebackpack->backpackapiurl;
-        $this->backpackapiurl = $sitebackpack->backpackapiurl;
         $this->backpackapiversion = $sitebackpack->apiversion;
         $this->password = $sitebackpack->password;
         $this->email = !empty($CFG->badges_defaultissuercontact) ? $CFG->badges_defaultissuercontact : '';

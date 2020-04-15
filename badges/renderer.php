@@ -87,6 +87,8 @@ class core_badges_renderer extends plugin_renderer_base {
                     if (badges_open_badges_backpack_api() == OPEN_BADGES_V1) {
                         $action = new component_action('click', 'addtobackpack', array('assertion' => $assertion->out(false)));
                         $addurl = new moodle_url('#');
+                    } else if (badges_open_badges_backpack_api() == OPEN_BADGES_V2P1) {
+                        $addurl = new moodle_url('/badges/backpack-export.php', array('hash' => $badge->uniquehash));
                     } else {
                         $addurl = new moodle_url('/badges/backpack-add.php', array('hash' => $badge->uniquehash));
                     }
@@ -354,7 +356,11 @@ class core_badges_renderer extends plugin_renderer_base {
                     $this->output->add_action_handler($action, 'addbutton');
                     $output .= $tobackpack;
                 } else {
-                    $assertion = new moodle_url('/badges/backpack-add.php', array('hash' => $ibadge->hash));
+                    if (badges_open_badges_backpack_api() == OPEN_BADGES_V2P1) {
+                        $assertion = new moodle_url('/badges/backpack-export.php', array('hash' => $ibadge->hash));
+                    } else {
+                        $assertion = new moodle_url('/badges/backpack-add.php', array('hash' => $ibadge->hash));
+                    }
                     $attributes = ['class' => 'btn btn-secondary m-1', 'role' => 'button'];
                     $tobackpack = html_writer::link($assertion, get_string('addtobackpack', 'badges'), $attributes);
                     $output .= $tobackpack;
@@ -601,8 +607,9 @@ class core_badges_renderer extends plugin_renderer_base {
     protected function render_badge_user_collection(\core_badges\output\badge_user_collection $badges) {
         global $CFG, $USER, $SITE;
         $backpack = $badges->backpack;
+        $activebackpack = badges_get_site_backpack($CFG->badges_site_backpack);
         $mybackpack = new moodle_url('/badges/mybackpack.php');
-
+        $isloggedoauth2 = core_badges\oauth2\auth::is_logged_oauth2($CFG->badges_site_backpack, $USER->id);
         $paging = new paging_bar($badges->totalcount, $badges->page, $badges->perpage, $this->page->url, 'page');
         $htmlpagingbar = $this->render($paging);
 

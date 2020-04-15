@@ -829,5 +829,4 @@ class core_badges_privacy_testcase extends provider_testcase {
         $record->id = $DB->insert_record('badge_manual_award', $record);
         return $record;
     }
-
 }
