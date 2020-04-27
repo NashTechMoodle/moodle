@@ -88,6 +88,7 @@ class backpack_api {
         $admin = get_admin();
 
         $this->backpackapiurl = $sitebackpack->backpackapiurl;
+        $this->backpackapiurl = $sitebackpack->backpackapiurl;
         $this->backpackapiversion = $sitebackpack->apiversion;
         $this->password = $sitebackpack->password;
         $this->email = !empty($CFG->badges_defaultissuercontact) ? $CFG->badges_defaultissuercontact : '';
@@ -640,7 +641,7 @@ class backpack_api {
                 if ($expanded) {
                     $publicassertions = [];
                     $context = context_system::instance();
-                    $output = $PAGE->get_renderer('core', 'badges');
+                    $output = $PAGE``->get_renderer('core', 'badges');
                     foreach ($badges->assertions as $assertion) {
                         $remoteassertion = $this->get_assertion($assertion);
                         // Remote badge was fetched nested in the assertion.

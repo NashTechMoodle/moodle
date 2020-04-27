@@ -226,7 +226,7 @@ class backpack_api2p1 {
         $response = $this->curl_request('post.assertions', $data);
         if ($response && isset($response->status->statusCode) && $response->status->statusCode == 200) {
             $msg['status'] = \core\output\notification::NOTIFY_SUCCESS;
-            $msg['message'] = get_string('backpackexportsuccess', 'badges', $data['assertion']['badge']['name']);
+            $msg['message'] = get_string('addedtobackpack', 'badges');
         } else {
             $msg['status'] = \core\output\notification::NOTIFY_ERROR;
             $msg['message'] = get_string('backpackexporterror', 'badges', $data['assertion']['badge']['name']);

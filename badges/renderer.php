@@ -607,9 +607,7 @@ class core_badges_renderer extends plugin_renderer_base {
     protected function render_badge_user_collection(\core_badges\output\badge_user_collection $badges) {
         global $CFG, $USER, $SITE;
         $backpack = $badges->backpack;
-        $activebackpack = badges_get_site_backpack($CFG->badges_site_backpack);
         $mybackpack = new moodle_url('/badges/mybackpack.php');
-        $isloggedoauth2 = core_badges\oauth2\auth::is_logged_oauth2($CFG->badges_site_backpack, $USER->id);
         $paging = new paging_bar($badges->totalcount, $badges->page, $badges->perpage, $this->page->url, 'page');
         $htmlpagingbar = $this->render($paging);
 
