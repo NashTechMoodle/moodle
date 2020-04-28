@@ -2292,7 +2292,21 @@ function xmldb_main_upgrade($oldversion) {
         upgrade_main_savepoint(true, 2020041500.00);
     }
 
-    if ($oldversion < 2020041700.00) {
+    if ($oldversion < 2020041700.01) {
+        // Upgrade h5p MIME type for existing h5p files.
+        $select = $DB->sql_like('filename', '?', false);
+        $DB->set_field_select(
+            'files',
+            'mimetype',
+            'application/zip.h5p',
+            $select,
+            array('%.h5p')
+        );
+
+        upgrade_main_savepoint(true, 2020041700.01);
+    }
+
+    if ($oldversion < 2020042800.00) {
         // Define table badge_backpack_oauth2 to be created.
         $table = new xmldb_table('badge_backpack_oauth2');
 
@@ -2343,21 +2357,7 @@ function xmldb_main_upgrade($oldversion) {
         }
 
         // Main savepoint reached.
-        upgrade_main_savepoint(true, 2020041700.00);
-    }
-
-    if ($oldversion < 2020041700.01) {
-        // Upgrade h5p MIME type for existing h5p files.
-        $select = $DB->sql_like('filename', '?', false);
-        $DB->set_field_select(
-            'files',
-            'mimetype',
-            'application/zip.h5p',
-            $select,
-            array('%.h5p')
-        );
-
-        upgrade_main_savepoint(true, 2020041700.01);
+        upgrade_main_savepoint(true, 2020042800.00);
     }
 
     return true;

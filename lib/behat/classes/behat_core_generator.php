@@ -863,8 +863,8 @@ class behat_core_generator extends behat_generator_base {
         $backpackoauth2->token = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
         $backpackoauth2->refreshtoken = '0123456789abcdefghijk';
         $backpackoauth2->expires = $timenow + 3600;
-        $backpackoauth2->scope = "https://purl.imsglobal.org/spec/ob/v2p1/scope/assertion.create
-         https://purl.imsglobal.org/spec/ob/v2p1/scope/assertion.readonly offline_access";
+        $backpackoauth2->scope = 'https://purl.imsglobal.org/spec/ob/v2p1/scope/assertion.create';
+        $backpackoauth2->scope .= ' https://purl.imsglobal.org/spec/ob/v2p1/scope/assertion.readonly offline_access';
         $DB->insert_record('badge_backpack_oauth2', $backpackoauth2);
 
         // Dummy badge_backpack data.

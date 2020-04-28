@@ -641,7 +641,7 @@ class backpack_api {
                 if ($expanded) {
                     $publicassertions = [];
                     $context = context_system::instance();
-                    $output = $PAGE``->get_renderer('core', 'badges');
+                    $output = $PAGE->get_renderer('core', 'badges');
                     foreach ($badges->assertions as $assertion) {
                         $remoteassertion = $this->get_assertion($assertion);
                         // Remote badge was fetched nested in the assertion.
