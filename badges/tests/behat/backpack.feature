@@ -1,4 +1,4 @@
-@core @core_badges @core_badges_backpack @_file_upload
+@core @core_badges @_file_upload
 Feature: Backpack badges
   The settings to connect to backpack with OAuth2 service
   As an learner
@@ -16,7 +16,12 @@ Feature: Backpack badges
   Scenario: Verify backback settings
     Given I am on homepage
     And I log in as "admin"
-    Given I navigate to "Badges > Add a new badge" in site administration
+    Given I navigate to "Badges > Backpack settings" in site administration
+    And I set the following fields to these values:
+      | External backpack connection | 1                        |
+      | Active external backpack     | https://dc.imsglobal.org |
+    And I press "Save changes"
+    And I navigate to "Badges > Add a new badge" in site administration
     And I set the following fields to these values:
       | Name          | Test badge verify backpack |
       | Version       | v1                         |
@@ -37,11 +42,6 @@ Feature: Backpack badges
     And I press "Award badge"
     And I set the field "potentialrecipients[]" to "Student 1 (student1@example.com)"
     And I press "Award badge"
-    And I navigate to "Badges > Backpack settings" in site administration
-    And I set the following fields to these values:
-      | External backpack connection | 1                        |
-      | Active external backpack     | https://dc.imsglobal.org |
-    And I press "Save changes"
     And I log out
     Given I am on homepage
     And I log in as "student1"
@@ -55,7 +55,12 @@ Feature: Backpack badges
   Scenario: User has been connected backpack
     Given I am on homepage
     And I log in as "admin"
-    Given I navigate to "Badges > Add a new badge" in site administration
+    And I navigate to "Badges > Backpack settings" in site administration
+    And I set the following fields to these values:
+      | External backpack connection | 1                        |
+      | Active external backpack     | https://dc.imsglobal.org |
+    And I press "Save changes"
+    And I navigate to "Badges > Add a new badge" in site administration
     And I set the following fields to these values:
       | Name           | Test badge verify backpack |
       | Version        | v1                         |
@@ -76,11 +81,6 @@ Feature: Backpack badges
     And I press "Award badge"
     And I set the field "potentialrecipients[]" to "Student 1 (student1@example.com)"
     And I press "Award badge"
-    And I navigate to "Badges > Backpack settings" in site administration
-    And I set the following fields to these values:
-      | External backpack connection | 1                        |
-      | Active external backpack     | https://dc.imsglobal.org |
-    And I press "Save changes"
     And I log out
     Given the following "setup backpack connected" exist:
       | user     | externalbackpack         |
