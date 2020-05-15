@@ -108,7 +108,7 @@ $PAGE->set_docs_path('');
 $editing = $PAGE->user_is_editing();
 $PAGE->set_title($SITE->fullname);
 $PAGE->set_heading($SITE->fullname);
-$courserenderer = $PAGE->get_renderer('core', 'course');
+$courserenderer = $PAGE->get_renderer('local_aliases');
 echo $OUTPUT->header();
 
 $siteformatoptions = course_get_format($SITE)->get_format_options();
