@@ -1,19 +1,16 @@
 <?php
 
 require_once(__DIR__ . '../../../config.php');
-require_once($CFG->libdir.'/tablelib.php');
-require_once("$CFG->libdir/formslib.php");
+require_once($CFG->libdir . '/tablelib.php');
+require_once($CFG->libdir . '/formslib.php');
 require_once('edit_form.php');
 require_once('search_form.php');
 
 require_login();
 
 $context = context_system::instance();
-
 $hassiteconfig = has_capability('local/alias:edit', $context);
-var_dump($hassiteconfig);
-
-if (!$hassiteconfig ) {
+if (!$hassiteconfig) {
     redirect(new moodle_url('/'));
 }
 
@@ -33,11 +30,11 @@ echo $OUTPUT->header();
 
 $mform = new info_form();
 
-if($mform->is_cancelled()){
+if ($mform->is_cancelled()) {
     redirect("index.php");
-}else if($data = $mform->get_data()){
+} else if ($data = $mform->get_data()) {
     $newData = new stdClass();
-    if(!empty($data->friendly) && !empty($data->destination)){
+    if (!empty($data->friendly) && !empty($data->destination)) {
         $newData->friendly = $data->friendly;
         $newData->destination = $data->destination;
         $newData->timecreated   = time();
