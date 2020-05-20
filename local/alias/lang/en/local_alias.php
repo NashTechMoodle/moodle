@@ -51,6 +51,9 @@ $string['search_textbox'] = "Finding some alias";
 $string['search_button'] = "Search";
 
 $string['noalias'] = "No alias found";
+$string['existedalias'] = "Alias is existed";
+$string['updatefaildalias'] = "Update alias is failed";
+$string['deletefaildalias'] = "Delete alias is failed";
 
 $string['alias:addinstance'] = "Add instance of alias";
 $string['alias:createalias'] = "Create new an alias";

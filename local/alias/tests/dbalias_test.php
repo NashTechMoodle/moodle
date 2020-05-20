@@ -23,8 +23,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 class db_alias_testcase extends advanced_testcase {
-   
-    public function test_create(){
+    /**
+     * Test create new database.
+     */
+    public function test_create() {
         global $DB;
         $this->resetAfterTest(true);
         $alias = (object)[
@@ -37,7 +39,11 @@ class db_alias_testcase extends advanced_testcase {
         $this->assertIsNumeric($alias->id);
     }
 
-    public function test_deletebyid(){
+    /**
+     * Tesr delete alias by id.
+     *
+     */
+    public function test_deletebyid() {
         global $DB;
         $this->resetAfterTest(true);
         $alias = (object)[
@@ -52,7 +58,10 @@ class db_alias_testcase extends advanced_testcase {
         $this->assertEmpty($DB->get_records('alias', ['id' => $alias->id]));
     }
 
-    public function test_update(){
+    /**
+     * Test update alias.
+     */
+    public function test_update() {
         global $DB;
         $this->resetAfterTest(true);
         $alias = (object)[

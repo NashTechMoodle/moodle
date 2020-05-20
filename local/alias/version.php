@@ -26,5 +26,5 @@ defined('MOODLE_INTERNAL') || die;
 
 $plugin->component = 'local_alias'; // Full name of the plugin (used for diagnostics)
 $plugin->version   = 2020051301; // The current module version (Date: YYYYMMDDXX)
-$plugin->requires  = 2019052004; // Requires this Moodle version
-// $plugin->cron      = 0;          // Period for cron to check this module (secs)
+$plugin->requires  = 2019052004; // Requires this Moodle version.
+// $plugin->cron      = 0;          // Period for cron to check this module (secs).

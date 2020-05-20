@@ -22,7 +22,6 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
- 
 defined('MOODLE_INTERNAL') || die;
 
 /**
@@ -33,7 +32,7 @@ defined('MOODLE_INTERNAL') || die;
  */
 function xmldb_local_alias_upgrade($oldversion) {
     global $CFG;
-    if($oldversion < 2020051301){
+    if ($oldversion < 2020051301) {
         // Alias savepoint reached.
         upgrade_plugin_savepoint(true, 2020051301, 'local', 'alias');
     }

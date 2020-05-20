@@ -28,13 +28,14 @@ require_once(__DIR__.'/edit_form.php');
 require_once($CFG->libdir.'/adminlib.php');
 require_once($CFG->libdir.'/weblib.php');
 require_once($CFG->libdir.'/outputlib.php');
+require_once(__DIR__.'/classes/alias.php');
 
 defined('MOODLE_INTERNAL') || die;
 
 $PAGE->set_context(context_system::instance());
 require_login();
 
-if(!has_capability('local/alias:viewalias', context_system::instance())){
+if (!has_capability('local/alias:viewalias', context_system::instance())) {
     print_error('nopermissions', 'error', '', 'create/delete/update alias');
 }
 
@@ -42,7 +43,8 @@ $aliasid  = optional_param('id', 0, PARAM_INT);
 $stralias = get_string("modulename", "local_alias");
 $strlink = get_string("modulename_link", "local_alias");
 $strlinkcreate = get_string("modulename_linkcreate", "local_alias");
-$alias = $DB->get_record('alias', array('id' => $aliasid));
+$alias = new local_alias\alias();
+$record = $alias->get_alias_by_id($aliasid);
 
 $PAGE->set_title($stralias);
 $PAGE->set_url('/'.$strlinkcreate);
@@ -50,34 +52,39 @@ $PAGE->set_heading($stralias);
 $PAGE->navbar->add($stralias);
 echo $OUTPUT->header();
 
-$mform = new alias_edit_form(null, array('alias' => $alias));
-$elData = $mform->get_data();
-var_dump($elData->fieldname['friendly']);
-if($mform->is_cancelled()){
+$mform = new alias_edit_form(null, array('alias' => $record ? $record : null));
+
+if ($mform->is_cancelled()) {
     redirect("index.php");
-}
-else if($data = $mform->get_data())
-{
+} else if ($data = $mform->get_data()) {
     $currentdata = new stdClass();
     $currentdata->friendly = $data->friendly;
     $currentdata->destination = $data->destination;
-    if(!empty($data->id)){
-        if(!empty($data->deletebutton)){
-            $DB->delete_records('alias', array('id' => $data->id));
-        }
-        else
-        {
-            if(!empty($data->friendly) && !empty($data->destination)){
+    $result = false;
+    if (!empty($data->id)) {
+        if (!empty($data->deletebutton)) {
+            $result = $alias->delete($data->id);
+            if (!$result) {
+                echo $OUTPUT->notification(get_string('deletefaildalias', 'local_alias'));
+            }
+        } else {
+            if (!empty($data->friendly) && !empty($data->destination)) {
                 $currentdata->id = $data->id;
-                $currentdata->timemodified  = time();
-                $DB->update_record('alias', $currentdata);
+                $result = $alias->update($currentdata);
+                if (!$result) {
+                    echo $OUTPUT->notification(get_string('existedalias', 'local_alias'));
+                }
             }
         }
-    }else if(!empty($data->friendly) && !empty($data->destination)){
-        $currentdata->timecreated   = time();
-        $DB->insert_record("alias", $currentdata);
+    } else if (!empty($data->friendly) && !empty($data->destination)) {
+        $result = $alias->save($currentdata);
+        if (!$result) {
+            echo $OUTPUT->notification(get_string('existedalias', 'local_alias'));
+        }
     }
-    redirect(new moodle_url("index.php", null, null));
+    if ($result) {
+        redirect(new moodle_url("index.php", null, null));
+    }
 }
 $mform->display();
 echo $OUTPUT->footer();

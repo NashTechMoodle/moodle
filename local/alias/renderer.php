@@ -23,7 +23,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @author     Yuliya Bozhko <yuliya.bozhko@totaralms.com>
  */
-
+defined('MOODLE_INTERNAL') || die;
 require_once($CFG->libdir.'/aliaslib.php');
 require_once($CFG->libdir.'/tablelib.php');
 
@@ -31,9 +31,9 @@ class local_alias_renderer extends plugin_renderer_base {
 
     /**
      * @param \local_alias\output\alias_collection $aliases array
-     * return HTML generater
+     * @return HTML generater
      */
-    public function render_alias_collection(local_alias\output\alias_collection $aliases){
+    public function render_alias_collection(local_alias\output\alias_collection $aliases) {
         $paging = new paging_bar(
             $aliases->totalcount,
             $aliases->page,
@@ -46,7 +46,7 @@ class local_alias_renderer extends plugin_renderer_base {
         $table->attributes['class'] = 'collection';
         $table->head = $aliases->titlecolumn;
         $table->colclasses = $aliases->titlecolumn;
-        foreach($aliases->records as $alias){
+        foreach ($aliases->records as $alias) {
             $table->data[] = array(
                 html_writer::link(new moodle_url('edit.php', array('id' => $alias->id), null), $alias->id),
                 $alias->friendly,

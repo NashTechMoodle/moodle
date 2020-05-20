@@ -27,11 +27,9 @@ defined('MOODLE_INTERNAL') || die;
 require_once($CFG->libdir.'/formslib.php');
 
 class search_form extends moodleform{
-
-    public function definition(){
+    public function definition() {
         $mform = $this->_form;
         $elements = [];
-        // $elements[] = $mform->addHelpButton('link', 'createnealias',null,new moodle_url('edit.php'), get_string('creatingalias_button', 'local_alias'), "btn btn-secondary");
         $elements[] = $mform->createElement('text', 'search', get_string('search_textbox', 'local_alias'));
         $elements[] = $mform->createElement('submit', 'button', get_string('search_button', 'local_alias'));
         $mform->addGroup($elements);

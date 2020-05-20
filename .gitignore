@@ -10,6 +10,8 @@
 # See gitignore(5) man page for more details
 #
 
+/local/codechecker
+
 # Swap files (vim)
 [._]*.s[a-v][a-z]
 [._]*.sw[a-p]

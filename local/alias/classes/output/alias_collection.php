@@ -24,7 +24,6 @@
  * @author     Yuliya Bozhko <yuliya.bozhko@totaralms.com>
  */
 
-
 namespace local_alias\output;
 
 defined('MOODLE_INTERNAL') || die();
@@ -34,7 +33,6 @@ require_once($CFG->libdir . '/aliaslib.php');
 use renderable;
 
 class alias_collection implements renderable {
-    
     /** @var string how are the data sorted */
     public $sort = 'Friendly';
 
